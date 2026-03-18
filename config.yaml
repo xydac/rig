@@ -2,7 +2,27 @@ company:
   name: ""
   context: "company/context.md"
 
-products: []
+products:
+  - name: bulkhead
+    repo: ""
+    local_path: "/home/x/working/bulkhead"
+    description: ""
+  - name: health
+    repo: ""
+    local_path: "/home/x/working/health"
+    description: ""
+  - name: postcall
+    repo: ""
+    local_path: "/home/x/working/postcall"
+    description: ""
+  - name: videogen
+    repo: ""
+    local_path: "/home/x/working/videogen"
+    description: ""
+  - name: standupai
+    repo: ""
+    local_path: "/home/x/working/standupai"
+    description: "StandupAI itself — self-monitoring"
 
 agents:
   enabled: true

@@ -6,7 +6,7 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG="$ROOT_DIR/config.yaml"
 AGENTS_PATH=$(yq '.agents.path' "$CONFIG")
 
-echo "=== StandupAI — Add Agent ==="
+echo "=== Rig — Add Agent ==="
 echo ""
 
 # Prompt for agent details

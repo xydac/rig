@@ -1,28 +1,28 @@
 company:
-  name: ""
+  name: "Oddinks"
   context: "company/context.md"
 
 products:
   - name: bulkhead
-    repo: ""
+    repo: "oddinks/bulkhead"
     local_path: "/home/x/working/bulkhead"
-    description: ""
+    description: "Remote file manager and code editor for iOS/macOS — SFTP, SMB, WebDAV, S3"
   - name: health
-    repo: ""
+    repo: "oddinks/health"
     local_path: "/home/x/working/health"
-    description: ""
+    description: "Nutrition and exercise app — unnamed, work in progress"
   - name: postcall
-    repo: ""
+    repo: "xydac/postcall"
     local_path: "/home/x/working/postcall"
-    description: ""
+    description: "Privacy-focused AI meeting summaries and action items"
   - name: videogen
     repo: ""
     local_path: "/home/x/working/videogen"
-    description: ""
-  - name: standupai
-    repo: ""
+    description: "Research project — evaluating video generation with LLMs"
+  - name: rig
+    repo: "xydac/rig"
     local_path: "/home/x/working/standupai"
-    description: "StandupAI itself — self-monitoring"
+    description: "Rig itself — self-monitoring"
 
 agents:
   enabled: true

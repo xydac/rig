@@ -6,7 +6,7 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG="$ROOT_DIR/config.yaml"
 TODAY=$(date +%Y-%m-%d)
 
-echo "=== StandupAI Pre-Meeting ==="
+echo "=== Rig Pre-Meeting ==="
 echo "Date: $TODAY"
 echo ""
 
@@ -115,4 +115,4 @@ HEADER
 done
 
 echo ""
-echo "=== Pre-meeting complete. Ready for standup. ==="
+echo "=== Pre-meeting complete. Ready for Rig. ==="

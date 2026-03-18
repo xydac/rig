@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG="$ROOT_DIR/config.yaml"
 
-echo "=== StandupAI — Add Product ==="
+echo "=== Rig — Add Product ==="
 echo ""
 
 # Prompt for product details

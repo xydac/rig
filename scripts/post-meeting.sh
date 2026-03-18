@@ -6,7 +6,7 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG="$ROOT_DIR/config.yaml"
 TODAY=$(date +%Y-%m-%d)
 
-echo "=== StandupAI Post-Meeting ==="
+echo "=== Rig Post-Meeting ==="
 echo ""
 
 # Process action items if file exists

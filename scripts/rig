@@ -13,7 +13,7 @@ fi
 
 case "${1:-run}" in
   run)
-    echo "=== Starting StandupAI ==="
+    echo "=== Starting Rig ==="
     echo ""
     "$SCRIPT_DIR/pre-meeting.sh"
     echo ""
@@ -36,9 +36,9 @@ case "${1:-run}" in
     "$SCRIPT_DIR/post-meeting.sh"
     ;;
   help)
-    echo "StandupAI — AI-powered daily standup partner"
+    echo "Rig — AI-powered daily standup partner"
     echo ""
-    echo "Usage: standup [command]"
+    echo "Usage: rig [command]"
     echo ""
     echo "Commands:"
     echo "  (none)        Run full standup flow (pre-meeting → session → post-meeting)"
@@ -50,7 +50,7 @@ case "${1:-run}" in
     ;;
   *)
     echo "Unknown command: $1"
-    echo "Run 'standup help' for usage."
+    echo "Run 'rig help' for usage."
     exit 1
     ;;
 esac

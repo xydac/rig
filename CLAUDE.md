@@ -1,8 +1,8 @@
-# StandupAI
+# Rig
 
-This is the StandupAI repo — a structured daily standup system for managing multiple products.
+This is the Rig repo — a structured daily standup system for managing multiple products.
 
-Read `standup-agent.md` for your full instructions and persona.
+Read `rig-agent.md` for your full instructions and persona.
 
 ## Quick reference
 
@@ -15,4 +15,4 @@ Read `standup-agent.md` for your full instructions and persona.
 
 ## Action items contract
 
-Write action items to `standups/.action-items-<date>.md` using the format specified in `standup-agent.md`. The post-meeting script parses this file to create GitHub issues.
+Write action items to `standups/.action-items-<date>.md` using the format specified in `rig-agent.md`. The post-meeting script parses this file to create GitHub issues.

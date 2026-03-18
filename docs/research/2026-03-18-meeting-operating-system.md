@@ -314,33 +314,203 @@ Background: Validation runs after any code changes (autonomous)
 
 ## Product Lifecycle Stages
 
-Different products need different meeting intensities:
+Different products need different meeting intensities AND different metrics. The stage determines what you measure, what meetings you run, and what signals trigger stage transitions.
 
-| Stage | Example | Meeting Focus |
-|-------|---------|---------------|
-| **Exploration** | Videogen | Market fit checks, pivot-or-persevere monthly, light standups |
-| **Building** | Health | Daily standups, sprint planning, validation runs after changes |
-| **Pre-Launch** | Postcall | Launch readiness (escalating), QA blitz, marketing prep |
-| **Growth** | BulkHead | Weekly metrics, competitive scans, content planning, performance audits |
-| **Maintenance** | — | Light standups, autonomous validation, quarterly reviews |
+### Stage Overview
 
-Rig could track each product's lifecycle stage in `config.yaml` and adjust default meeting participation accordingly:
+| Stage | Example | Meeting Focus | Key Question |
+|-------|---------|---------------|-------------|
+| **Exploration** | Videogen | Pivot-or-persevere monthly, light standups | Should we build this? |
+| **Building** | Health | Daily standups, sprint planning, validation runs | Are we shipping fast enough? |
+| **Pre-Launch** | Postcall | Launch readiness (escalating), QA blitz, marketing prep | Is it ready for real users? |
+| **Growth** | BulkHead | Weekly metrics, competitive scans, content planning | Is growth sustainable? |
+| **Maintenance** | — | Light standups, autonomous validation, quarterly reviews | Is it still worth maintaining? |
+
+### Exploration Stage Metrics
+
+**Goal:** Determine if a real market exists before writing code.
+
+| Metric | Kill / Continue Threshold | How to Capture |
+|--------|--------------------------|----------------|
+| Landing page conversion (email signup) | < 5% = weak; > 10% = strong | Plausible goals |
+| Landing page "buy" click | < 2% = kill; > 5% = build | Plausible / PostHog |
+| "Very disappointed" survey | < 20% = kill; > 40% = PMF signal | Email survey (manual) |
+| Pre-sales / waitlist | Any pre-sale = strong signal | Stripe / Gumroad |
+| Problem interview hit rate | < 30% "real problem" = kill | Manual (20-30 conversations) |
+| Competitor revenue signals | Competitors at $10K+ MRR = market exists | IndieHackers / SimilarWeb (manual) |
+
+**Transition to Building:** At least ONE of: 50+ waitlist, 5+ pre-sales, or > 40% "very disappointed." Budget: $50-200 and 2-4 weeks max.
+
+### Building Stage Metrics
+
+**Goal:** Ship efficiently without over-engineering.
+
+| Metric | Healthy Range | How to Capture |
+|--------|--------------|----------------|
+| Weekly commit frequency | Consistent > 0 every week | `git log --since="1 week ago" --oneline \| wc -l` |
+| Time to first working prototype | < 4 weeks for MVP | Calendar |
+| MVP feature completion | Track % of milestone issues closed | GitHub Milestones API |
+| Build success rate | > 95% green | GitHub Actions |
+| Scope creep ratio | > 1.5x original scope = red flag | GitHub Issues API (new vs original) |
+| Days since last deploy | > 14 days = stalling | GitHub Releases API |
+| Test coverage (core paths) | 60-80% | CI coverage reports |
+
+**Transition to Pre-Launch:** Core user flow works end-to-end. All MVP issues closed. Time to get it in front of real users.
+
+### Pre-Launch Stage Metrics
+
+**Goal:** Validate real users can use it and get value.
+
+| Metric | Go/No-Go Threshold | How to Capture |
+|--------|-------------------|----------------|
+| Crash-free session rate | < 99.0% = don't launch; > 99.5% = go | App Store Connect API / Sentry |
+| Beta Day 1 retention | > 40% | PostHog |
+| Beta Day 7 retention | > 25% | PostHog |
+| Core action completion | > 60% of users complete primary action | PostHog custom events |
+| NPS from beta testers | < 20 = major issues; > 30 = healthy | In-app survey (manual) |
+| Bug report rate | Decreasing trend over beta | GitHub Issues API |
+| Time to first value | < 2 min simple apps; < 5 min complex | PostHog funnel |
+
+**Go/No-Go Checklist:**
+- [ ] Crash-free sessions > 99.5%
+- [ ] No P0/P1 bugs open
+- [ ] Core flow works without confusion
+- [ ] 5+ beta users independently completed core action
+- [ ] NPS > 20
+- [ ] App Store metadata ready
+
+**Transition to Launch:** All go/no-go items checked.
+
+### Launch Stage Metrics (First 30 Days)
+
+**Goal:** Determine if the product has real traction.
+
+| Metric | Average / Good / Great | How to Capture |
+|--------|----------------------|----------------|
+| Day 1 retention | 26% / 35% / 45% | PostHog |
+| Day 7 retention | 13% / 20% / 30% | PostHog |
+| Day 30 retention | 8% / 12% / 20% | PostHog |
+| Trial → paid conversion | > 8% monthly; > 15% annual | Stripe |
+| App Store rating | > 4.0 = viable; < 3.5 = fix quality | App Store Connect API |
+| Organic vs paid ratio | > 50% organic = strong signal | Attribution tracking |
+| Support ticket rate | < 5% of users | Help desk / email |
+
+**Red flags:** Retention drops to zero by Day 7. Zero organic signups after launch spike. Downloads but zero engagement.
+
+**Transition to Growth:** Retention curves flatten (even at 5%). Some users convert to paid unprompted. Positive reviews appear organically.
+
+### Growth Stage Metrics
+
+**Goal:** Sustainable revenue growth.
+
+| Metric | Healthy Benchmark | How to Capture |
+|--------|------------------|----------------|
+| MRR growth | 5-15% MoM early; 20-25% YoY at scale | Stripe |
+| Monthly churn | < 5% SMB; < 3% prosumer | Stripe |
+| Net Revenue Retention (NRR) | > 100% = expanding; 104% median bootstrapped | Stripe |
+| LTV:CAC ratio | > 3x minimum; > 5x = healthy | Stripe + ad spend |
+| DAU/MAU (stickiness) | 13% SaaS avg; > 20% good; > 25% excellent | PostHog |
+| Feature adoption | > 20% of users use new feature within 30 days | PostHog |
+
+**Sustainable vs vanity growth:**
+- Sustainable: Revenue growing, churn flat, NRR > 100%, organic > 30%
+- Vanity: Downloads up but revenue flat, DAU/MAU declining, growth from single channel
+
+**Transition to Maintenance:** Growth flattens, product stable, your time better spent elsewhere.
+
+### Maintenance Stage Metrics
+
+**Goal:** Detect decline early, decide when to reinvest.
+
+| Metric | Warning Signal | How to Capture |
+|--------|---------------|----------------|
+| MRR trend | 3+ months flat or declining | Stripe |
+| Churn trend | Increasing > 0.5% per quarter | Stripe |
+| NRR | Dropping below 95% | Stripe |
+| App Store rating trend | Below 4.0 | App Store Connect API |
+| Crash rate trend | Increasing after OS updates | Sentry |
+
+**Decision framework:**
+- **Invest more:** NRR > 100%, users asking for features, adjacent market exists
+- **Autopilot:** NRR 95-100%, churn stable, profit positive, time better elsewhere
+- **Sunset/sell:** NRR < 90% for 6+ months, maintenance > profit, no turnaround path
+
+---
+
+## Metrics Capture Infrastructure
+
+### The Pre-Meeting Metrics Pull
+
+Extend `scripts/pre-meeting.sh` to pull metrics alongside git/GitHub data:
+
+```bash
+# Per product, based on stage:
+# GitHub: commits, issues closed, PRs
+gh api repos/OWNER/REPO/issues --jq '[.[] | select(.closed_at > "DATE")] | length'
+
+# Stripe: MRR, churn (for products with payments)
+stripe billing meters list 2>/dev/null
+
+# App Store Connect: downloads, crashes, ratings (for iOS products)
+# via App-Store-Connect-CLI or API
+
+# PostHog: retention, DAU (for products with analytics)
+# curl PostHog API → write to summary
+```
+
+Results written to `products/<name>/metrics/<date>.md` — agents read this during meetings.
+
+### Recommended Stack (Solo Founder)
+
+| Tool | What it captures | Cost |
+|------|-----------------|------|
+| **PostHog** | Retention, funnels, DAU/MAU, feature adoption | Free (1M events/mo) |
+| **Plausible** | Web analytics, referrers, goals | $9/mo or self-host |
+| **Stripe** | MRR, churn, NRR, LTV, trial conversion | Free (built-in) |
+| **App Store Connect** | Downloads, crashes, ratings, sessions | Free (built-in) |
+| **Sentry** | Crash rates, error tracking | Free tier |
+| **GitHub** | Commits, issues, PRs, build status | Free |
+| **RevenueCat** | In-app purchase analytics | Free < $2.5K MRR |
+
+### Automated vs Manual
+
+**Automated (cron/script):** GitHub metrics, Stripe MRR/churn, App Store crashes/downloads, PostHog retention, Sentry crash rates
+
+**Semi-automated (periodic script):** App Store reviews/ratings, social media followers, search rankings
+
+**Manual (no automation path):** Customer interviews, NPS surveys, competitor deep dives, CAC calculation, "very disappointed" PMF survey
+
+---
+
+## Config with Lifecycle Stages
 
 ```yaml
 products:
   - name: postcall
     stage: pre-launch
     launch_date: 2026-03-25
+    metrics:
+      posthog_project: postcall
+      stripe_product: prod_xxx
+      app_store_id: 123456
   - name: health
     stage: building
     launch_date: 2026-03-31
+    metrics:
+      posthog_project: health
   - name: bulkhead
     stage: growth
+    metrics:
+      app_store_id: 789012
+      stripe_product: prod_yyy
   - name: videogen
     stage: exploration
 ```
 
-Products in `exploration` stage get fewer meetings. Products approaching `launch_date` automatically trigger launch readiness cadence.
+Rig reads the stage and adjusts:
+- Which metrics to pull in pre-meeting
+- Which meetings the product participates in
+- What thresholds to flag (e.g., pre-launch product with crash rate < 99% = alert)
 
 ---
 

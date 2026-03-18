@@ -28,6 +28,10 @@ agents:
   enabled: true
   path: "company/agents"
 
+swarm:
+  enabled: true
+  teammate_model: "sonnet"
+
 standup:
   auto_commit: true
   auto_push: true

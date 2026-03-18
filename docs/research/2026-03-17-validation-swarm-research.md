@@ -19,13 +19,22 @@ AI can write code, but "AI doing everything doesn't scale." We need agents that 
 
 ### Browser Automation (for Postcall web app)
 
-| Tool | How it works | Best for |
-|------|-------------|----------|
-| **Playwright MCP** (Microsoft) | Accessibility snapshots + actions, no screenshots needed | Fast, reliable web testing |
-| **Claude Code + Chrome** (`claude --chrome`) | Direct browser control via Chrome extension | Authenticated app testing, visual checks |
-| **Computer Use API** | Screenshot → analyze → click/type | Complex visual interactions |
+| Tool | How it works | Context cost | Best for |
+|------|-------------|-------------|----------|
+| **Vercel Agent Browser** | ASCII wireframes with numbered element refs | ~100-500 tokens (93% reduction) | Navigation, form interaction, max efficiency |
+| **Stagehand** | AI vision + DOM hybrid, self-healing | ~1-3k tokens per action | Complex interactions, self-healing selectors |
+| **Firecrawl** | Clean markdown extraction, strips boilerplate | 60-90% reduction vs raw HTML | Content extraction, competitor page scraping |
+| **Playwright MCP** (Microsoft) | Full accessibility snapshots + actions | 10-50k tokens (heavy) | When you need full DOM control |
+| **Claude Code + Chrome** (`claude --chrome`) | Direct browser control via Chrome extension | Medium | Authenticated app testing, visual checks |
 
-**Recommendation:** Playwright MCP for automated validation, Claude Code Chrome for interactive sessions. Playwright is faster and cheaper (accessibility snapshots = 10-50 tokens vs screenshots = 1,600-6,300 tokens).
+**Recommendation:** Use a **pre-processed approach** — keep expensive browser automation out of the AI context window:
+
+1. **Agent Browser** (Vercel) for in-context navigation when needed — ASCII wireframes are 93% cheaper than Playwright's DOM dumps
+2. **CLI tools run externally** for validation — `pa11y` (accessibility), `lighthouse` (performance), `axe-core` (WCAG). Write results to markdown files, agents read the summaries
+3. **Firecrawl** for competitor page analysis — outputs clean markdown, not raw HTML
+4. **Screenshots + Claude vision** only for visual UX review — expensive, use sparingly
+
+The pattern: **run tools → write summary to file → agent reads summary**. This keeps the AI context clean.
 
 ### iOS Simulator Automation (for BulkHead, Health)
 
@@ -42,6 +51,34 @@ AI can write code, but "AI doing everything doesn't scale." We need agents that 
 ```
 Build (xcodebuild) → Install (simctl) → Launch → Screenshot → Parse accessibility tree → Tap/type → Verify → Iterate
 ```
+
+---
+
+### The Pre-Processed Pattern
+
+The key insight: **keep expensive tools out of the AI context**. Run them as scripts, write structured results to files, let agents read only what they need.
+
+```
+scripts/validate.sh
+    ├── pa11y <url> --json > validations/a11y.json        # accessibility
+    ├── lighthouse <url> --output=json > validations/perf.json  # performance
+    ├── axe-core <url> > validations/wcag.json             # WCAG
+    └── agent-browser screenshot <url> > validations/screenshot.png
+
+Agent reads: validations/summary.md (generated from JSON results)
+```
+
+**CLI tools to run externally:**
+
+| Tool | Purpose | Install | Output |
+|------|---------|---------|--------|
+| `pa11y` | WCAG accessibility | `npm i -g pa11y` | JSON with issue list |
+| `lighthouse` | Performance scores | `npm i -g lighthouse` | JSON with scores + suggestions |
+| `axe-core` | Detailed WCAG rules | `npm i -g @axe-core/cli` | JSON with violations |
+| `agent-browser` | ASCII wireframe + screenshots | `npm i -g agent-browser` | Text wireframe or PNG |
+| `broken-link-checker` | Dead links | `npm i -g broken-link-checker` | List of broken URLs |
+
+A post-validation script summarizes the JSON outputs into a concise markdown file — the agent only reads that.
 
 ---
 

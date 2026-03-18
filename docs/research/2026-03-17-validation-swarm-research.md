@@ -167,6 +167,100 @@ Findings → GitHub issues (auto-created for failures)
 
 ---
 
+## Competitive Intelligence — Beyond Validation
+
+These agents shouldn't just test your products — they should **use competitor products too** and feed insights back into product decisions.
+
+### How it works
+
+The same tools (Playwright MCP for web, iOS Simulator for mobile, Claude Code Chrome for authenticated apps) can interact with competitor products:
+
+- **Web competitors:** Playwright or Chrome extension navigates competitor sites, captures flows, analyzes UX patterns
+- **iOS competitors:** Install competitor apps from TestFlight or App Store into the simulator, run through flows, capture screenshots
+- **Public APIs:** Hit competitor APIs to understand capabilities, pricing, rate limits
+
+### Competitive Agent Roles
+
+#### Product Scout Agent
+- Uses competitor products periodically (weekly or on-demand)
+- Documents their UX flows, onboarding, pricing, and key features
+- Captures screenshots and writes structured comparison reports
+- Stores findings in `products/<name>/competitive/`
+
+#### Benchmark Agent
+- Runs the same user flow in your product AND a competitor's product
+- Side-by-side comparison: speed, steps to complete, friction points
+- Example: "Creating a meeting summary takes 3 taps in Postcall vs 5 in Otter.ai"
+- Tracks benchmarks over time — are you gaining or losing ground?
+
+#### Feature Gap Analyst
+- Maintains a feature matrix per product (yours vs competitors)
+- After each competitor review, updates the gap analysis
+- Flags when a competitor ships something relevant to your roadmap
+- Feeds into backlog prioritization during standups
+
+### Competitive data structure
+
+```
+products/
+└── postcall/
+    ├── competitive/
+    │   ├── landscape.md              # feature matrix, positioning
+    │   ├── otter-ai/
+    │   │   ├── 2026-03-17.md         # dated review
+    │   │   └── screenshots/
+    │   ├── fireflies/
+    │   │   └── ...
+    │   └── granola/
+    │       └── ...
+    ├── roadmap.md
+    └── backlog.md
+```
+
+### How it feeds back into Rig
+
+1. **Pre-meeting:** Competitive agent's latest findings appear in product summaries
+2. **Talk mode:** "How does our onboarding compare to Otter?" → orchestrator asks the competitive agent or reads the latest report
+3. **Decisions:** Competitive insights inform roadmap/backlog prioritization
+4. **Post-DONE:** PM agents can reference competitive findings when implementing features ("match Otter's 3-tap flow")
+
+### When to run competitive reviews
+
+- **Weekly:** Quick scan of competitor landing pages, app store listings, changelogs
+- **On-demand:** Deep dive before a major feature decision ("should we add speaker diarization?")
+- **Triggered:** When a competitor ships a notable update (monitor via RSS, app store version tracking, or changelog pages)
+
+### Practical limitations
+
+- **App Store apps:** Can install on simulator but some features require real device / account
+- **Authenticated competitors:** Need test accounts — some competitors block automation
+- **Token cost:** Full competitive review is expensive (many screenshots). Use targeted reviews, not exhaustive crawls
+- **Freshness:** Competitor products change — reviews decay. Date everything, re-run periodically
+
+---
+
+## Unified Agent Taxonomy
+
+Combining validation + competitive intelligence, here's the full roster:
+
+| Agent | Purpose | Inward (your product) | Outward (competitors) |
+|-------|---------|----------------------|----------------------|
+| **QA Agent** | Functional testing | Run flows, report bugs | — |
+| **Accessibility Agent** | WCAG compliance | Audit your app | Audit competitor apps |
+| **UX Reviewer** | Friction analysis | Evaluate your UX | Compare UX patterns |
+| **Performance Agent** | Speed benchmarks | Measure your app | Benchmark vs competitors |
+| **Domain Expert** | Product-specific | Deep product knowledge | Feature gap analysis |
+| **Product Scout** | Market intelligence | — | Monitor competitors |
+| **Benchmark Agent** | Side-by-side comparison | Your flow | Competitor flow |
+
+Not every agent runs every time. Smart scheduling:
+- **Every standup with code changes:** QA, Accessibility
+- **Weekly:** UX Reviewer, Product Scout
+- **On-demand:** Benchmark Agent, Domain Expert deep dives
+- **Before major decisions:** Full competitive sweep
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Foundation (do first)
@@ -180,15 +274,22 @@ Findings → GitHub issues (auto-created for failures)
 - Accessibility Agent — WCAG automated checks
 - Wire findings into GitHub issues
 
-### Phase 3: Advanced Agents
+### Phase 3: Competitive Intelligence
+- Product Scout — monitor competitor products, capture flows
+- Benchmark Agent — side-by-side flow comparisons
+- Add `products/<name>/competitive/` structure
+- Feature gap matrix per product
+
+### Phase 4: Advanced Agents
 - UX Reviewer — screenshot-based friction analysis
 - Performance Agent — benchmark tracking
-- Domain Expert — product-specific validation
+- Domain Expert — product-specific deep dives
 
-### Phase 4: Feedback Loop
-- Validation results appear in pre-meeting summaries
-- Trends tracked across standups (are we improving?)
+### Phase 5: Feedback Loop
+- Validation + competitive results appear in pre-meeting summaries
+- Trends tracked across standups
 - ntfy notifications for critical failures
+- Competitive alerts when competitors ship notable updates
 
 ---
 
@@ -200,6 +301,9 @@ Findings → GitHub issues (auto-created for failures)
 4. **Only validate what changed** — skip products with no code changes
 5. **Structured findings, not opinions** — pass/fail + evidence, routed to GitHub issues
 6. **Start with QA + Accessibility** — highest ROI, most deterministic results
+7. **Same tools work for competitive analysis** — Playwright and iOS Simulator can interact with competitor products too
+8. **Competitive intel feeds into standups** — not a separate process, it's part of the Rig flow
+9. **Date everything** — competitive findings decay fast, re-run periodically
 
 ---
 

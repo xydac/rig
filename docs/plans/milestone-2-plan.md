@@ -265,48 +265,136 @@ Flags auto-generated based on stage-specific thresholds from the lifecycle metri
 
 ---
 
-### 6. Dashboard
+### 6. Live Ops Dashboard
 
-**Problem:** Everything is in markdown files. Hard to get a bird's-eye view across products.
+**Problem:** Everything is in markdown files. Hard to get a bird's-eye view across products. During standups, you can't see what's happening across all products at a glance.
 
-**Inspiration:** OpenSwarm's dashboard aesthetic.
+**Inspiration:** OpenSwarm's dashboard + mission control / ops center aesthetic.
 
-**Solution:** Lightweight web dashboard that reads from the git repo. No database — markdown is the source of truth.
+**Vision:** A live dashboard that starts with Rig and stays open on your desk. Updates in real-time as the standup progresses, PM agents execute, and results come in. Think ops center, not static report.
 
-**Stack:** Single HTML file + vanilla JS (or simple static site generator). Reads repo files via local server or GitHub API.
+**Stack:** Node.js server (lightweight, single file) + HTML/CSS/JS frontend. Watches the repo's markdown files for changes via `fs.watch`. Serves a WebSocket connection so the browser updates live without polling. No framework — vanilla JS, dark theme, terminal aesthetic.
+
+**Lifecycle:**
+1. `./scripts/rig` starts the dashboard server as a background process (port 3847)
+2. Browser opens automatically (or you keep it pinned)
+3. Dashboard reads all markdown files, config.yaml, git log
+4. As agents write files (summaries, decisions, metrics, ideas), dashboard updates live via filesystem watcher → WebSocket push
+5. After post-meeting, dashboard stays running for reference
+6. Stops when you kill it or next `rig` session starts (replaces old server)
 
 **Views:**
 
-#### Portfolio Overview
+#### Ops Center (main view — always visible)
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Rig Dashboard                                    2026-03-18 │
-├──────────┬──────────┬──────────┬──────────┬────────────────┤
-│ postcall │  health  │ bulkhead │ videogen │      rig       │
-│ PRE-LNCH │ BUILDING │  GROWTH  │ EXPLORE  │    GROWTH      │
-│ 🟢 Ready │ 🟡 13d   │ 🟢 Stable│ 🔵 R&D  │ 🟢 Stable      │
-│ 5 issues │ 5 issues │ 0 issues │ 0 issues │ 3 issues       │
-│ T-7 days │ T-13 days│          │          │                │
-├──────────┴──────────┴──────────┴──────────┴────────────────┤
-│ Last standup: 2026-03-17                                    │
-│ Decisions: 3 | Action items: 2 | Tasks dispatched: 13      │
-│ Next: Weekly Review (Monday)                                │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  RIG OPS CENTER                              2026-03-18 run #2  │
+├──────────┬──────────┬──────────┬──────────┬─────────────────────┤
+│ postcall │  health  │ bulkhead │ videogen │       rig           │
+│ PRE-LNCH │ BUILDING │  GROWTH  │ EXPLORE  │     GROWTH          │
+│ 🟢 Ready │ 🟡 13d   │ 🟢 Stable│ 🔵 R&D  │   🟢 Stable         │
+│ 5 issues │ 5 issues │ 0 issues │ 0 issues │   3 issues          │
+│ T-7 days │ T-13 days│          │          │                     │
+├──────────┴──────────┴──────────┴──────────┴─────────────────────┤
+│ SESSION: Talk Mode                                               │
+│ ● postcall PM: idle         ● health PM: reading context         │
+│ ● bulkhead PM: idle         ● videogen PM: idle                  │
+├──────────────────────────────────────────────────────────────────┤
+│ LIVE FEED                                                        │
+│ 14:32  Decision: Postcall TestFlight go/no-go → GO               │
+│ 14:28  [CTO]: "CSP header fix looks clean, approve"              │
+│ 14:25  Summary loaded for postcall (12 commits since last run)   │
+│ 14:23  Pre-meeting complete. 5 products scanned.                 │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-#### Product Detail
+After DONE:
+```
+├──────────────────────────────────────────────────────────────────┤
+│ SESSION: Executing (post-DONE)                                   │
+│ ● postcall PM: EXECUTING — 3/7 tasks done                       │
+│ ● health PM: EXECUTING — 1/6 tasks done                         │
+│ ● bulkhead PM: idle (no tasks)                                   │
+│ ● videogen PM: idle (no tasks)                                   │
+│ ○ competitive-scan: running                                      │
+│ ○ idea-evaluation: running                                       │
+├──────────────────────────────────────────────────────────────────┤
+│ LIVE FEED                                                        │
+│ 14:45  postcall PM: Closed #53 OAuth brand logos                 │
+│ 14:43  postcall PM: Closed #54 Notification permission           │
+│ 14:41  health PM: Completed competitive UI research              │
+│ 14:38  DONE — 13 tasks dispatched to 2 PM agents                │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+#### Product Detail (click a product card)
+- Lifecycle stage + days to launch
+- Metrics with threshold flags (green/yellow/red)
 - Roadmap status (in progress / planned / shipped)
-- Recent metrics with threshold flags
-- Open ideas ranked by ROI
-- Last 5 standup mentions
+- Open ideas ranked by ROI score
+- Recent standup mentions (last 5)
 - Competitive landscape summary
+- Agent status and recent commits
 
-#### Meeting History
-- Timeline of all meetings with summaries
-- Decisions log across all meetings
-- Action items status (open / closed)
+#### Activity Timeline
+- Chronological feed of all events across products
+- Filterable by product, event type (decision, action item, commit, agent status)
+- Decisions highlighted in distinct color
 
-**Implementation approach:** Static HTML generated by a script (`scripts/dashboard.sh`) that parses markdown files and outputs an `index.html` to `dashboard/`. Serve locally with `python -m http.server` or push to GitHub Pages.
+#### Ideas Board
+- Kanban-style: inbox → evaluated → validated → prioritized → rejected
+- ROI scores visible on each card
+- Drag to reprioritize (writes back to markdown)
+
+**Implementation approach:**
+
+```
+dashboard/
+├── server.js          # Node.js: file watcher + WebSocket + static serve
+├── index.html         # Single page app
+├── style.css          # Dark theme, terminal aesthetic, ops center
+└── app.js             # Client: WebSocket listener, DOM updates, views
+```
+
+- `server.js` watches `products/`, `standups/`, `decisions/`, `config.yaml` for changes
+- On change: re-reads affected markdown, parses frontmatter/structure, pushes delta via WebSocket
+- No build step, no framework, no bundler — just files
+- Markdown parsing: simple regex for headers, lists, code blocks (or `marked` library if needed)
+- Config parsed with `js-yaml`
+- Git log parsed with `child_process.exec('git log ...')`
+
+**What updates live:**
+- PM agent status (reads from team/task state or standup files being written)
+- Pre-meeting summaries appearing
+- Decisions and action items being created
+- Metrics files being written
+- Competitive scan results
+- Idea pipeline changes
+
+**Startup integration:**
+```bash
+# In scripts/rig, before launching claude:
+"$SCRIPT_DIR/dashboard.sh" start   # starts server in background
+# ... claude session ...
+# Dashboard stays running after session ends
+```
+
+`scripts/dashboard.sh`:
+```bash
+#!/bin/bash
+case "${1:-start}" in
+  start)
+    # Kill existing dashboard if running
+    pkill -f "node.*dashboard/server.js" 2>/dev/null
+    cd "$ROOT_DIR/dashboard" && node server.js &
+    echo "Dashboard running at http://localhost:3847"
+    ;;
+  stop)
+    pkill -f "node.*dashboard/server.js" 2>/dev/null
+    echo "Dashboard stopped."
+    ;;
+esac
+```
 
 ---
 

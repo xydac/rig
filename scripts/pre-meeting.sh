@@ -6,8 +6,23 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG="$ROOT_DIR/config.yaml"
 TODAY=$(date +%Y-%m-%d)
 
+# Determine iteration number for today
+# Counts existing files for today to find next iteration
+next_iteration() {
+  local dir="$1"
+  local prefix="$2"
+  local count=0
+  if ls "$dir/${prefix}${TODAY}"* 1> /dev/null 2>&1; then
+    count=$(ls -1 "$dir/${prefix}${TODAY}"* | wc -l)
+  fi
+  echo $((count + 1))
+}
+
+ITER=$(next_iteration "$ROOT_DIR/standups" "")
+RUN_ID="${TODAY}-${ITER}"
+
 echo "=== Rig Pre-Meeting ==="
-echo "Date: $TODAY"
+echo "Run: $RUN_ID"
 echo ""
 
 # Check prerequisites
@@ -58,7 +73,7 @@ for i in $(seq 0 $((PRODUCT_COUNT - 1))); do
 
   SUMMARY_DIR="$ROOT_DIR/products/$NAME/summaries"
   mkdir -p "$SUMMARY_DIR"
-  SUMMARY_FILE="$SUMMARY_DIR/$TODAY.md"
+  SUMMARY_FILE="$SUMMARY_DIR/$RUN_ID.md"
 
   # Start summary
   cat > "$SUMMARY_FILE" << HEADER

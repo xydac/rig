@@ -17,7 +17,7 @@ Then read your product context files from the Rig repo:
 - Backlog: `{RIG_ROOT}/products/{PRODUCT_NAME}/backlog.md`
 - Notes: `{RIG_ROOT}/products/{PRODUCT_NAME}/notes.md`
 - Decisions: `{RIG_ROOT}/products/{PRODUCT_NAME}/decisions/`
-- Today's summary: `{RIG_ROOT}/products/{PRODUCT_NAME}/summaries/{TODAY}.md`
+- Today's summaries: `{RIG_ROOT}/products/{PRODUCT_NAME}/summaries/{TODAY}*.md` (read the most recent one)
 
 Read these files to understand the current state of your product.
 

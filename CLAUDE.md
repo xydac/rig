@@ -51,7 +51,7 @@ Update their `agent.md` if the user refines or disagrees.
 
 ### During talk mode
 - Decisions → write to `products/<name>/decisions/<date>-<topic>.md` or `decisions/<date>-<topic>.md`
-- Action items → write to `standups/.action-items-<date>.md` (see format in `rig-agent.md`)
+- Action items → write to `standups/.action-items-<run-id>.md` (see format in `rig-agent.md`)
 - Roadmap/backlog changes → update relevant `products/<name>/` files
 - Persona updates → update `company/agents/<role>/agent.md`
 
@@ -59,7 +59,7 @@ Update their `agent.md` if the user refines or disagrees.
 
 When the user says "DONE" (case-insensitive):
 
-1. Write standup summary to `standups/<date>.md`
+1. Write standup summary to `standups/<date>-<iter>.md` (e.g., `2026-03-18-2.md` for the second run today)
 2. **Swarm mode:** Send "EXECUTE" message to each PM agent with their tasks:
    ```
    EXECUTE
@@ -70,7 +70,7 @@ When the user says "DONE" (case-insensitive):
 4. Tell user: "Tasks dispatched. Post-meeting will run automatically."
 5. Wait for all PM agents to send "COMPLETED" or "BLOCKED" messages
 6. Send shutdown requests to completed agents; note blockers in standup summary
-7. Once all agents shut down: `git add -A && git commit -m "standup: <date>"`
+7. Once all agents shut down: `git add -A && git commit -m "standup: <date>-<iter>"`
 8. Exit session (triggers post-meeting.sh)
 
 **Single-agent mode:** Just write the summary and exit.

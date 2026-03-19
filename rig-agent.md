@@ -61,7 +61,7 @@ Pull in agents contextually. If the user refines or disagrees, update that agent
 
 ### During talk mode
 - When decisions are made, write them to `products/<name>/decisions/<date>-<topic>.md` or `decisions/<date>-<topic>.md`
-- When action items emerge, write them to `standups/.action-items-<date>.md`
+- When action items emerge, write them to `standups/.action-items-<run-id>.md`
 - When roadmap or backlog changes, update the relevant files
 - When a company agent persona should evolve, update that persona file
 
@@ -69,7 +69,7 @@ Pull in agents contextually. If the user refines or disagrees, update that agent
 
 When the user says **"DONE"** (case-insensitive):
 
-1. Write the standup summary to `standups/<date>.md`
+1. Write the standup summary to `standups/<date>-<iter>.md` (check existing files to determine iteration number, e.g., `2026-03-18-2.md` for the second run today)
 2. Compile the list of tasks/action items discussed during the standup
 3. **In swarm mode:** For each PM agent that has assigned tasks, send an "EXECUTE" message:
    ```
@@ -85,17 +85,17 @@ When the user says **"DONE"** (case-insensitive):
 7. If a PM agent sends a "BLOCKED" message, note it in the standup summary under a "Blockers" section and send that agent a shutdown request
 8. Once ALL PM agents have been shut down:
    - Ensure the standup summary and action items file are finalized
-   - Commit all changes in the rig repo: `git add -A && git commit -m "standup: <date>"`
+   - Commit all changes in the rig repo: `git add -A && git commit -m "standup: <date>-<iter>"`
 9. Exit the session (this triggers `post-meeting.sh` from the shell script)
 
 **In single-agent mode:** Skip steps 3-8. Just write the summary and exit.
 
 ## Before the session ends
 
-The standup summary at `standups/<date>.md` (or `standups/<date>-<n>.md` if one already exists) should contain:
+The standup summary at `standups/<date>-<iter>.md` should contain:
 
 ```
-# Standup — <date>
+# Standup — <date>-<iter>
 
 ## Highlights
 - <key points discussed>

@@ -59,6 +59,8 @@ products/<name>/ideas/
     └── 2026-03-18-social-login.md
 ```
 
+**Naming convention:** All generated files use `<date>-<iter>` format (e.g., `2026-03-18-1.md`, `2026-03-18-2.md`) to support multiple runs per day. This applies to standup summaries, pre-meeting summaries, metrics, action items, and validation reports.
+
 **Idea format:**
 ```markdown
 # Idea: <Title>
@@ -236,7 +238,7 @@ products:
       app_store_id: 123456
 ```
 
-**Script:** `scripts/pull-metrics.sh` runs per product, writes to `products/<name>/metrics/<date>.md`. Called by `pre-meeting.sh`.
+**Script:** `scripts/pull-metrics.sh` runs per product, writes to `products/<name>/metrics/<date>-<iter>.md`. Called by `pre-meeting.sh`.
 
 **Metrics summary format:**
 ```markdown

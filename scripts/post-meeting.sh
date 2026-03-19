@@ -6,11 +6,22 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG="$ROOT_DIR/config.yaml"
 TODAY=$(date +%Y-%m-%d)
 
+# Find the most recent run ID by looking at standup files from today
+RUN_ID="$TODAY-1"
+if ls "$ROOT_DIR/standups/${TODAY}"*.md 1> /dev/null 2>&1; then
+  LATEST=$(ls -1 "$ROOT_DIR/standups/${TODAY}"*.md | sort | tail -1)
+  RUN_ID=$(basename "$LATEST" .md)
+fi
+
 echo "=== Rig Post-Meeting ==="
+echo "Run: $RUN_ID"
 echo ""
 
-# Process action items if file exists
-ACTION_FILE="$ROOT_DIR/standups/.action-items-$TODAY.md"
+# Process action items if file exists (check both run-specific and date-only)
+ACTION_FILE="$ROOT_DIR/standups/.action-items-$RUN_ID.md"
+if [ ! -f "$ACTION_FILE" ]; then
+  ACTION_FILE="$ROOT_DIR/standups/.action-items-$TODAY.md"
+fi
 
 if [ -f "$ACTION_FILE" ]; then
   echo "Processing action items..."
@@ -80,7 +91,7 @@ if [ "$AUTO_COMMIT" = "true" ]; then
   if git diff --cached --quiet; then
     echo "No changes to commit."
   else
-    git commit -m "standup: $TODAY"
+    git commit -m "standup: $RUN_ID"
     echo "Committed."
   fi
 else

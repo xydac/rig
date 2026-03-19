@@ -63,8 +63,16 @@ echo ""
 # Read products from config
 PRODUCT_COUNT=$(yq '.products | length' "$CONFIG")
 
+# Optional product filter (from env var)
+FILTER="${PRODUCT_FILTER:-}"
+
 for i in $(seq 0 $((PRODUCT_COUNT - 1))); do
   NAME=$(yq ".products[$i].name" "$CONFIG")
+
+  # Skip if product filter is set and doesn't match
+  if [ -n "$FILTER" ] && [ "$NAME" != "$FILTER" ]; then
+    continue
+  fi
   REPO=$(yq ".products[$i].repo" "$CONFIG")
   LOCAL_PATH=$(yq ".products[$i].local_path" "$CONFIG")
   DESCRIPTION=$(yq ".products[$i].description" "$CONFIG")

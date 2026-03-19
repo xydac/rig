@@ -46,8 +46,18 @@ When you receive an "EXECUTE" message with tasks:
   ```
 - After sending the completion report, you are done — the orchestrator will handle shutdown
 
+## Before Shutdown — Save Your Knowledge
+Before accepting a shutdown request, save any new insights you learned during this session:
+- Append to `{RIG_ROOT}/products/{PRODUCT_NAME}/notes.md` with a dated section:
+  ```
+  ## Session Notes (<date>)
+  - <key insight, pattern, or context learned>
+  ```
+- Only write genuinely new information — don't repeat what's already in the file
+- This is how your knowledge persists to the next standup
+
 ## Shutdown
-When you receive a shutdown request from the orchestrator, accept it immediately. Do not start new work after receiving a shutdown request.
+After saving your notes, accept the shutdown request immediately. Do not start new work.
 
 ## Guidelines
 - Be concise — the orchestrator is coordinating multiple products

@@ -38,6 +38,8 @@ case "$COMMAND" in
       echo "Focus: $PRODUCT_FILTER"
     fi
     echo ""
+    # Start dashboard
+    "$SCRIPT_DIR/dashboard.sh" start
     PRODUCT_FILTER="$PRODUCT_FILTER" "$SCRIPT_DIR/pre-meeting.sh"
     echo ""
     echo "=== Launching standup session... ==="
@@ -95,6 +97,9 @@ case "$COMMAND" in
   post)
     "$SCRIPT_DIR/post-meeting.sh"
     ;;
+  dashboard)
+    "$SCRIPT_DIR/dashboard.sh" "${ARGS[1]:-start}"
+    ;;
   help)
     echo "Rig — AI-powered product command center"
     echo ""
@@ -107,6 +112,7 @@ case "$COMMAND" in
     echo "  add-agent     Onboard a new company agent"
     echo "  pre           Run pre-meeting only"
     echo "  post          Run post-meeting only"
+    echo "  dashboard      Start/stop the ops dashboard"
     echo "  help          Show this help"
     echo ""
     echo "Flags:"

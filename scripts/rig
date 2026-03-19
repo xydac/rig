@@ -50,6 +50,39 @@ case "$COMMAND" in
     echo ""
     "$SCRIPT_DIR/post-meeting.sh"
     ;;
+  meeting)
+    MEETING_TYPE="${ARGS[1]}"
+    if [ -z "$MEETING_TYPE" ]; then
+      echo "Usage: rig meeting <type> [--product <name>]"
+      echo ""
+      echo "Meeting types:"
+      ls -1 "$ROOT_DIR/meetings/" | sed 's/\.md$//'
+      exit 1
+    fi
+    MEETING_FILE="$ROOT_DIR/meetings/${MEETING_TYPE}.md"
+    if [ ! -f "$MEETING_FILE" ]; then
+      echo "ERROR: Unknown meeting type: $MEETING_TYPE"
+      echo "Available types:"
+      ls -1 "$ROOT_DIR/meetings/" | sed 's/\.md$//'
+      exit 1
+    fi
+    echo "=== Rig Meeting: $MEETING_TYPE ==="
+    if [ -n "$PRODUCT_FILTER" ]; then
+      echo "Focus: $PRODUCT_FILTER"
+    fi
+    echo ""
+    PRODUCT_FILTER="$PRODUCT_FILTER" "$SCRIPT_DIR/pre-meeting.sh"
+    echo ""
+    echo "=== Launching $MEETING_TYPE session... ==="
+    echo ""
+    if [ -n "$PRODUCT_FILTER" ]; then
+      cd "$ROOT_DIR" && PRODUCT_FILTER="$PRODUCT_FILTER" MEETING_TYPE="$MEETING_TYPE" claude
+    else
+      cd "$ROOT_DIR" && MEETING_TYPE="$MEETING_TYPE" claude
+    fi
+    echo ""
+    "$SCRIPT_DIR/post-meeting.sh"
+    ;;
   add-product)
     "$SCRIPT_DIR/add-product.sh"
     ;;
@@ -69,6 +102,7 @@ case "$COMMAND" in
     echo ""
     echo "Commands:"
     echo "  (none)        Run full standup flow (pre-meeting → session → post-meeting)"
+    echo "  meeting <type> Run a specific meeting type"
     echo "  add-product   Onboard a new product"
     echo "  add-agent     Onboard a new company agent"
     echo "  pre           Run pre-meeting only"

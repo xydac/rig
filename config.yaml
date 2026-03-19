@@ -7,22 +7,29 @@ products:
     repo: "oddinks/bulkhead"
     local_path: "/home/x/working/bulkhead"
     description: "Remote file manager and code editor for iOS/macOS — SFTP, SMB, WebDAV, S3"
+    stage: growth
   - name: health
     repo: "oddinks/health"
     local_path: "/home/x/working/health"
     description: "Nutrition and exercise app — unnamed, work in progress"
+    stage: building
+    launch_date: "2026-03-31"
   - name: postcall
     repo: "xydac/postcall"
     local_path: "/home/x/working/postcall"
     description: "Privacy-focused AI meeting summaries and action items"
+    stage: pre-launch
+    launch_date: "2026-03-25"
   - name: videogen
     repo: ""
     local_path: "/home/x/working/videogen"
     description: "Research project — evaluating video generation with LLMs"
+    stage: exploration
   - name: rig
     repo: "xydac/rig"
     local_path: "/home/x/working/standupai"
     description: "Rig itself — self-monitoring"
+    stage: growth
 
 agents:
   enabled: true

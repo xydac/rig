@@ -16,7 +16,7 @@ Before responding to the user, execute these steps in order:
 5. Read `pm-agent.md` to get the PM agent template
 6. Read `swarm.teammate_model` from config (default: "sonnet")
 7. Use the **TeamCreate** tool to create a team called "rig-standup"
-8. For each product in config.yaml (EXCEPT the product named "rig"):
+8. For each product in config.yaml (EXCEPT the product named "rig"). If `PRODUCT_FILTER` env var is set, ONLY spawn the PM agent for that product — skip all others:
    - Take the pm-agent.md template text
    - Replace `{PRODUCT_NAME}` with the product name
    - Replace `{PRODUCT_DESCRIPTION}` with the product description (or "N/A" if empty)

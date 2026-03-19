@@ -20,7 +20,7 @@ If `swarm.enabled` is `true`:
 1. Read `swarm.teammate_model` from config (default: "sonnet")
 2. Create a team using the TeamCreate tool
 3. Read `pm-agent.md` template
-4. For each product in `config.yaml` (EXCEPT "rig" — you handle Rig's context directly):
+4. For each product in `config.yaml` (EXCEPT "rig" — you handle Rig's context directly). If `PRODUCT_FILTER` env var is set, ONLY spawn the PM agent for that one product — skip all others:
    - Replace template placeholders:
      - `{PRODUCT_NAME}` → product name
      - `{PRODUCT_DESCRIPTION}` → product description (use "N/A" if empty)
@@ -101,15 +101,16 @@ When the user says **"DONE"** (case-insensitive):
 
 1. Write the standup summary to `standups/<date>-<iter>.md` (check existing files to determine iteration number, e.g., `2026-03-18-2.md` for the second run today)
 2. Compile the list of tasks/action items discussed during the standup
-3. **In swarm mode:** For each PM agent that has assigned tasks, send an "EXECUTE" message:
+3. **In swarm mode:** For each PM agent, send an "EXECUTE" message. Every PM agent always receives a standing task to update product docs. Add any standup-specific tasks after it:
    ```
    EXECUTE
 
    Tasks:
-   1. <task description>
-   2. <task description>
+   1. Update roadmap.md and backlog.md to reflect the current state of the product (recent commits, closed issues, completed work). Remove completed items, add new items discussed in standup, and ensure docs match reality.
+   2. <additional task from standup, if any>
    ```
-4. For PM agents with no tasks, send a shutdown request via SendMessage
+   If a PM agent has only the standing doc-update task and nothing else, still send it — do NOT skip or shut down without the update.
+4. For PM agents that have been explicitly marked as having no work at all (e.g., dormant/exploration products with no activity), send a shutdown request via SendMessage
 5. Tell the user: "Tasks dispatched to PM agents. Post-meeting will run automatically."
 6. **Launch autonomous background tasks:**
    - Read `meetings/idea-evaluation.md` and execute its instructions (score any inbox ideas across all products)

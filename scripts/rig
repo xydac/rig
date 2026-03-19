@@ -57,7 +57,7 @@ case "$COMMAND" in
       echo ""
       echo "Meeting types:"
       ls -1 "$ROOT_DIR/meetings/" | sed 's/\.md$//'
-      exit 1
+      exit 0
     fi
     MEETING_FILE="$ROOT_DIR/meetings/${MEETING_TYPE}.md"
     if [ ! -f "$MEETING_FILE" ]; then

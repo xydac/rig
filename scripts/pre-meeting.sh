@@ -137,6 +137,7 @@ HEADER
   # Stage-aware metrics (if stage is configured)
   STAGE=$(yq ".products[$i].stage" "$CONFIG" 2>/dev/null)
   if [ -n "$STAGE" ] && [ "$STAGE" != "null" ]; then
+    echo "  Product Stage: $STAGE"
     echo "## Product Stage" >> "$SUMMARY_FILE"
     echo "**Stage:** $STAGE" >> "$SUMMARY_FILE"
 
@@ -144,6 +145,7 @@ HEADER
     LAUNCH_DATE=$(yq ".products[$i].launch_date" "$CONFIG" 2>/dev/null)
     if [ -n "$LAUNCH_DATE" ] && [ "$LAUNCH_DATE" != "null" ]; then
       DAYS_LEFT=$(( ( $(date -d "$LAUNCH_DATE" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$LAUNCH_DATE" +%s 2>/dev/null) - $(date +%s) ) / 86400 ))
+      echo "  Launch: $LAUNCH_DATE (${DAYS_LEFT} days)"
       echo "**Launch date:** $LAUNCH_DATE (**${DAYS_LEFT} days**)" >> "$SUMMARY_FILE"
       if [ "$DAYS_LEFT" -le 7 ]; then
         echo "⚠️ **LAUNCH IMMINENT** — consider running launch-readiness meeting" >> "$SUMMARY_FILE"

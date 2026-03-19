@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rig Ops Center</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>RIG OPS CENTER</h1>
+    <div id="header-meta">
+      <span id="last-update"></span>
+      <span id="connection-status" class="status-dot">●</span>
+    </div>
+  </header>
+
+  <main>
+    <section id="product-cards" class="card-grid"></section>
+
+    <section id="live-feed-section">
+      <h2>LIVE FEED</h2>
+      <div id="live-feed"></div>
+    </section>
+
+    <section id="product-detail" class="hidden">
+      <button id="back-btn" class="btn">← Back</button>
+      <div id="detail-content"></div>
+    </section>
+
+    <section id="standups-section">
+      <h2>RECENT STANDUPS</h2>
+      <div id="standups-list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

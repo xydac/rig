@@ -295,20 +295,41 @@ Adapted from research on startup cadences:
 - **Post-Mortem** (after incidents)
 - **Competitive Alert** (when competitor ships notable update)
 
-### What this looks like in a week
+### AI-Native Cadence (Not Human-Week Cadence)
+
+AI agents don't need weekly schedules. They can run "a week's worth" of analysis in minutes. The cadence model should be:
+
+**Every standup cycle (after DONE):**
+- Competitive scan (autonomous) — runs alongside PM agent execution
+- Idea evaluation (autonomous) — scores any new inbox ideas
+- Validation run (autonomous) — if PM agents changed code
+- Metrics pull (autonomous) — updates product metrics
+- Content/marketing tasks (autonomous) — if assigned
+
+**Human-initiated (on-demand):**
+- Deep review — when you want to focus on one product
+- Launch readiness — when approaching a launch date
+- Pivot-or-persevere — when you need to make a strategic call
+- Strategy review — monthly, when you want the big picture
+
+**What a standup day looks like:**
 
 ```
-Monday:    Weekly Review (30 min, human)
-Tuesday:   Daily Standup (15 min, human)
-Wednesday: Daily Standup (15 min, human)
-Thursday:  Daily Standup (15 min, human)
-Friday:    Daily Standup (15 min, human)
-Sunday:    Competitive Scan (autonomous, overnight)
-
-Background: Validation runs after any code changes (autonomous)
+You run ./scripts/rig
+  → Pre-meeting: git activity + metrics pulled (2 min)
+  → Talk mode: standup conversation (15-30 min human)
+  → You say DONE
+  → PM agents execute coding tasks         ┐
+  → Competitive scan runs in background     │ all parallel,
+  → Idea evaluation runs in background      │ all autonomous
+  → Validation runs after code changes      ┘
+  → Everything commits and pushes
+  → You're done. Come back tomorrow.
 ```
 
-**Total human time: ~2 hours/week** for 4 products. Everything else runs autonomously.
+**Human time: 15-30 min/day.** Everything else is autonomous and runs in parallel after DONE.
+
+The bottleneck is **your attention**, not agent capacity. Agents should do as much as possible every cycle, not wait for arbitrary calendar dates.
 
 ---
 

@@ -170,11 +170,19 @@ swarm:
 
 | Meeting | Cadence | Human | What it does |
 |---------|---------|-------|-------------|
-| `daily-standup` | Daily | Required | Current behavior (default) |
-| `weekly-review` | Weekly | Required | Deeper review, metrics, week planning |
-| `competitive-scan` | Weekly | Autonomous | Monitor competitors, write reports |
-| `idea-evaluation` | Weekly | Autonomous | Score inbox ideas, move to evaluated |
+| `daily-standup` | Daily | Required | Cross-product sync, priorities, decisions |
+| `deep-review` | On-demand | Required | Metrics deep dive, strategy for one product |
+| `competitive-scan` | Every standup (autonomous) | Autonomous | Monitor competitors, runs as post-DONE task |
+| `idea-evaluation` | Every standup (autonomous) | Autonomous | Score inbox ideas, runs as post-DONE task |
 | `launch-readiness` | Event-triggered | Required | Go/no-go checklist for a product |
+
+**Key shift:** AI agents don't need weekly cadences. Autonomous meetings run **every standup cycle** as background tasks after DONE. Competitive scans, idea evaluation, and metrics pulls happen every time PM agents spin up — not once a week. The bottleneck is human attention, not agent capacity.
+
+**Cadence model:**
+- **Every standup:** Autonomous tasks (competitive scan, idea evaluation, metrics pull, validation) run in background after DONE alongside PM agent execution
+- **Every standup (human):** You decide what to discuss, what to prioritize, what to build
+- **On-demand:** Deep reviews, launch readiness, pivot-or-persevere — triggered when you need them
+- **Monthly:** Strategy review, portfolio rebalancing — these need reflection time, not speed
 
 **Commands:**
 ```bash
@@ -314,10 +322,9 @@ Based on effort vs impact:
 | 6 | Idea evaluation + prioritization | M | Medium | Idea pipeline |
 | 7 | Dashboard (v1: static HTML) | L | Medium | Metrics, ideas, meetings |
 
-**Sprint 1 (this week):** Features 1-2
-**Sprint 2 (next week):** Features 3-4
-**Sprint 3:** Features 5-6
-**Sprint 4:** Feature 7
+**Sprint 1 (today):** Features 1-3 (single-product focus, idea pipeline, worker→reviewer)
+**Sprint 2 (tomorrow):** Features 4-6 (meeting types, metrics, idea evaluation)
+**Sprint 3 (day after):** Feature 7 (dashboard)
 
 ---
 
@@ -380,15 +387,27 @@ swarm:
     escalate_after: 3
 
 meetings:
-  weekly-review:
-    day: monday
-    human: required
+  # These run autonomously every standup cycle (post-DONE)
   competitive-scan:
-    day: sunday
+    trigger: post-done
     human: autonomous
   idea-evaluation:
-    day: wednesday
+    trigger: post-done
     human: autonomous
+  validation-run:
+    trigger: post-done
+    human: autonomous
+    only_if: code_changed
+  # These are human-initiated
+  deep-review:
+    trigger: on-demand
+    human: required
+  launch-readiness:
+    trigger: on-demand
+    human: required
+  strategy-review:
+    trigger: on-demand  # monthly recommended
+    human: required
 
 standup:
   auto_commit: true

@@ -134,6 +134,53 @@ HEADER
     fi
   fi
 
+  # Stage-aware metrics (if stage is configured)
+  STAGE=$(yq ".products[$i].stage" "$CONFIG" 2>/dev/null)
+  if [ -n "$STAGE" ] && [ "$STAGE" != "null" ]; then
+    echo "## Product Stage" >> "$SUMMARY_FILE"
+    echo "**Stage:** $STAGE" >> "$SUMMARY_FILE"
+
+    # Launch countdown
+    LAUNCH_DATE=$(yq ".products[$i].launch_date" "$CONFIG" 2>/dev/null)
+    if [ -n "$LAUNCH_DATE" ] && [ "$LAUNCH_DATE" != "null" ]; then
+      DAYS_LEFT=$(( ( $(date -d "$LAUNCH_DATE" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$LAUNCH_DATE" +%s 2>/dev/null) - $(date +%s) ) / 86400 ))
+      echo "**Launch date:** $LAUNCH_DATE (**${DAYS_LEFT} days**)" >> "$SUMMARY_FILE"
+      if [ "$DAYS_LEFT" -le 7 ]; then
+        echo "⚠️ **LAUNCH IMMINENT** — consider running launch-readiness meeting" >> "$SUMMARY_FILE"
+      fi
+    fi
+    echo "" >> "$SUMMARY_FILE"
+
+    # GitHub issue metrics
+    if [ -n "$REPO" ] && [ "$REPO" != "null" ] && [ "$REPO" != '""' ] && [ "$REPO" != "" ]; then
+      OPEN_ISSUES=$(gh issue list --repo "$REPO" --state open --json number 2>/dev/null | yq '. | length' 2>/dev/null || echo "?")
+      CLOSED_WEEK=$(gh issue list --repo "$REPO" --state closed --json closedAt --jq "[.[] | select(.closedAt > \"${SINCE}\")] | length" 2>/dev/null || echo "?")
+      echo "## Metrics" >> "$SUMMARY_FILE"
+      echo "- Open issues: $OPEN_ISSUES" >> "$SUMMARY_FILE"
+      echo "- Issues closed since last standup: $CLOSED_WEEK" >> "$SUMMARY_FILE"
+      echo "" >> "$SUMMARY_FILE"
+    fi
+
+    # Write standalone metrics file
+    METRICS_DIR="$ROOT_DIR/products/$NAME/metrics"
+    mkdir -p "$METRICS_DIR"
+    METRICS_FILE="$METRICS_DIR/$RUN_ID.md"
+    {
+      echo "# $NAME — Metrics ($RUN_ID)"
+      echo "**Stage:** $STAGE"
+      if [ -n "$LAUNCH_DATE" ] && [ "$LAUNCH_DATE" != "null" ]; then
+        echo "**Launch:** $LAUNCH_DATE (${DAYS_LEFT} days)"
+      fi
+      if [ -n "$REPO" ] && [ "$REPO" != "null" ] && [ "$REPO" != '""' ] && [ "$REPO" != "" ]; then
+        echo ""
+        echo "## GitHub"
+        echo "- Open issues: $OPEN_ISSUES"
+        echo "- Closed since last standup: $CLOSED_WEEK"
+      fi
+      echo ""
+    } > "$METRICS_FILE"
+  fi
+
   echo "  Summary written to: $SUMMARY_FILE"
 done
 

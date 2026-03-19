@@ -1,0 +1,14 @@
+{
+  "name": "rig-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dashboard": "node dashboard/server.js"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.0",
+    "js-yaml": "^4.1.0",
+    "ws": "^8.18.0"
+  }
+}

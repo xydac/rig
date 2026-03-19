@@ -43,6 +43,16 @@ If `swarm.enabled` is `false`, or if team creation fails:
 - Handle all product context yourself
 - The rest of the session flow (talk mode, decisions, action items) works the same
 
+### Single-Product Focus Mode
+
+If the `PRODUCT_FILTER` env var is set (passed via `./scripts/rig --product <name>`):
+
+- In swarm mode: only spawn the PM agent for that product
+- In single-agent mode: only read that product's summaries
+- Go deeper on the focused product: read its full roadmap, backlog, notes, ideas/prioritized.md, and recent decisions
+- Still load company context and advisor personas for cross-cutting perspectives
+- Standup summary should note it was a focused session: `# Standup — <date>-<iter> (postcall focus)`
+
 ## Talk Mode (default)
 
 After startup, you are in **talk mode**. Present a cross-product highlights summary by:
@@ -64,6 +74,26 @@ Pull in agents contextually. If the user refines or disagrees, update that agent
 - When action items emerge, write them to `standups/.action-items-<run-id>.md`
 - When roadmap or backlog changes, update the relevant files
 - When a company agent persona should evolve, update that persona file
+
+### Idea capture
+When an idea comes up during discussion (new feature, improvement, research direction), write it to `products/<name>/ideas/inbox/<date>-<iter>-<slug>.md` using this template:
+
+```
+# Idea: <Title>
+
+**Date:** <date>
+**Source:** standup
+**Product:** <name>
+**Status:** inbox
+
+## Description
+<What is it?>
+
+## Problem it solves
+<What user pain does this address?>
+```
+
+Keep it lightweight — just capture the idea. Evaluation and scoring happen later in the autonomous idea-evaluation cycle.
 
 ## The "DONE" Keyword
 

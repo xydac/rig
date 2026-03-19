@@ -182,6 +182,7 @@ server.on('upgrade', (req, socket, head) => {
 
 // --- Start ---
 buildState();
-server.listen(PORT, () => {
-  console.log(`Rig Dashboard: http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+server.listen(PORT, HOST, () => {
+  console.log(`Rig Dashboard: http://${HOST}:${PORT}`);
 });

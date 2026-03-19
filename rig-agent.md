@@ -110,13 +110,16 @@ When the user says **"DONE"** (case-insensitive):
    2. <task description>
    ```
 4. For PM agents with no tasks, send a shutdown request via SendMessage
-5. Tell the user: "Tasks dispatched to PM agents. They'll work autonomously and shut down when done. Post-meeting will run automatically."
-6. **Wait for all PM agents to complete.** As each PM agent sends a "COMPLETED" message, acknowledge it and then send that agent a shutdown request
-7. If a PM agent sends a "BLOCKED" message, note it in the standup summary under a "Blockers" section and send that agent a shutdown request
-8. Once ALL PM agents have been shut down:
+5. Tell the user: "Tasks dispatched to PM agents. Post-meeting will run automatically."
+6. **Launch autonomous background tasks:**
+   - Read `meetings/idea-evaluation.md` and execute its instructions (score any inbox ideas across all products)
+   - If any product has a `competitive/landscape.md`, read `meetings/competitive-scan.md` and execute its instructions
+7. **Wait for all PM agents to complete.** As each PM agent sends a "COMPLETED" message, acknowledge it and then send that agent a shutdown request
+8. If a PM agent sends a "BLOCKED" message, note it in the standup summary under a "Blockers" section and send that agent a shutdown request
+9. Once ALL PM agents have been shut down and autonomous tasks are done:
    - Ensure the standup summary and action items file are finalized
    - Commit all changes in the rig repo: `git add -A && git commit -m "standup: <date>-<iter>"`
-9. Exit the session (this triggers `post-meeting.sh` from the shell script)
+10. Exit the session (this triggers `post-meeting.sh` from the shell script)
 
 **In single-agent mode:** Skip steps 3-8. Just write the summary and exit.
 

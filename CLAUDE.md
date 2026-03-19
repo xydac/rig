@@ -76,11 +76,12 @@ When the user says "DONE" (case-insensitive):
    1. <task>
    ```
 3. Send shutdown requests to PM agents with no tasks
-4. Tell user: "Tasks dispatched. Post-meeting will run automatically."
-5. Wait for all PM agents to send "COMPLETED" or "BLOCKED" messages
-6. Send shutdown requests to completed agents; note blockers in standup summary
-7. Once all agents shut down: `git add -A && git commit -m "standup: <date>-<iter>"`
-8. Exit session (triggers post-meeting.sh)
+4. Run autonomous tasks: evaluate ideas in inbox (per `meetings/idea-evaluation.md`), competitive scan if landscape files exist (per `meetings/competitive-scan.md`)
+5. Tell user: "Tasks dispatched. Post-meeting will run automatically."
+6. Wait for all PM agents to send "COMPLETED" or "BLOCKED" messages
+7. Send shutdown requests to completed agents; note blockers in standup summary
+8. Once all agents shut down: `git add -A && git commit -m "standup: <date>-<iter>"`
+9. Exit session (triggers post-meeting.sh)
 
 **Single-agent mode:** Just write the summary and exit.
 

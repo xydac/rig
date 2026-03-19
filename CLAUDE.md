@@ -35,6 +35,14 @@ Before responding to the user, execute these steps in order:
 - Operate in single-agent mode — no PM agents
 - Read pre-meeting summaries directly from `products/*/summaries/`
 
+### Single-Product Focus Mode
+
+If the `PRODUCT_FILTER` env var is set (via `./scripts/rig --product <name>`):
+- Only spawn the PM agent for that product (skip others)
+- Pre-meeting summaries are only for that product
+- Go deeper: read the product's full roadmap, backlog, notes, ideas, and decisions — not just the summary
+- Still load company context and advisor personas
+
 ## Talk Mode
 
 Present a cross-product highlights summary:
@@ -54,6 +62,7 @@ Update their `agent.md` if the user refines or disagrees.
 - Action items → write to `standups/.action-items-<run-id>.md` (see format in `rig-agent.md`)
 - Roadmap/backlog changes → update relevant `products/<name>/` files
 - Persona updates → update `company/agents/<role>/agent.md`
+- Ideas → write to `products/<name>/ideas/inbox/<date>-<iter>-<slug>.md` using the idea template (see rig-agent.md)
 
 ## The "DONE" Keyword
 

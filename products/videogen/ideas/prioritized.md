@@ -4,4 +4,4 @@ Ranked by ROI score: (Impact × Confidence × Reach) / Effort
 
 | Rank | Idea | ROI Score | Status |
 |------|------|-----------|--------|
-| — | No ideas evaluated yet | — | — |
+| 1 | Social Content Business Plan (AI Tools + Indie Hacking) | 0.94 | evaluated — in progress |

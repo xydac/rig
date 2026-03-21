@@ -363,9 +363,22 @@ function attachClaudeHandlers(proc) {
     clearTimeout(session.stopTimer);
     clearTimeout(session.killTimer);
 
-    // If we were shutting down (stop-session flow), finish post-meeting
+    // If we were shutting down (stop-session flow), send DONE turn then finish
     if (session.state === SESSION_STATES.SHUTTING_DOWN) {
-      finishShutdown();
+      // If this was the DONE turn completing, run post-meeting
+      if (session.doneWasSent) {
+        finishShutdown();
+        return;
+      }
+      // Otherwise current turn just finished — now send DONE as a new turn
+      session.doneWasSent = true;
+      const args = ['-p', '--resume', session.sessionId,
+        '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
+        'DONE'];
+      pushChat({ role: 'user', type: 'message', text: 'DONE', ts: Date.now() });
+      const doneProc = spawnClaude(args);
+      session.claudeProcess = doneProc;
+      attachClaudeHandlers(doneProc);
       return;
     }
 
@@ -403,6 +416,7 @@ async function finishShutdown() {
   }
 
   session.sessionId = null;
+  session.doneWasSent = false;
   chatHistory = [];
   chatBytes = 0;
   agentStates = {};
@@ -455,6 +469,9 @@ wss.on('connection', (ws) => {
 
       setSessionState(SESSION_STATES.RUNNING);
 
+      // Start watching tasks for this session
+      startTaskWatcher(session.sessionId);
+
       // First turn: launch claude with initial prompt from CLAUDE.md context
       // The user will send the first chat-input to actually begin
       broadcast({ type: 'session-state', data: { status: SESSION_STATES.RUNNING, sessionId: session.sessionId, turnActive: false, ready: true } });
@@ -501,6 +518,7 @@ wss.on('connection', (ws) => {
         }, 30000);
       } else {
         // Send DONE as a new turn
+        session.doneWasSent = true;
         const args = ['-p', '--resume', session.sessionId,
           '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
           'DONE'];

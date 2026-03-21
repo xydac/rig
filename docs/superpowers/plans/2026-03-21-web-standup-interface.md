@@ -6,7 +6,9 @@
 
 **Architecture:** The existing Node.js dashboard server (`dashboard/server.js`) gains a session manager that spawns `claude` as a PTY subprocess via `node-pty`, pipes stdin/stdout over WebSocket to the browser. A second file watcher monitors `~/.claude/teams/rig-standup/` and `~/.claude/tasks/<sessionId>/` for PM agent activity. The frontend (`dashboard/app.js`) adds a chat pane, agent tab panels, and responsive layout.
 
-**Tech Stack:** Node.js (ESM), node-pty, WebSocket (ws), chokidar, vanilla JS frontend, marked (CDN) for markdown rendering.
+**Tech Stack:** Node.js (ESM), WebSocket (ws), chokidar, vanilla JS frontend, marked (CDN) for markdown rendering.
+
+**IMPORTANT REVISION (2026-03-21):** The original plan used `node-pty` to wrap the claude CLI as a PTY subprocess. This was changed because `node-pty` requires native compilation (`make`/`gcc`) which aren't available. Instead, we use `claude -p --output-format stream-json --verbose --include-partial-messages --session-id <uuid>` with `child_process.spawn`. This gives structured JSON streaming over stdin/stdout with no native dependencies. Multi-turn conversation uses `--resume <session-id>` for follow-up messages. Each user message spawns a new claude process that continues the same session. All references to `node-pty` and PTY in the tasks below should be read as `child_process.spawn` with stream-json mode.
 
 **Spec:** `docs/superpowers/specs/2026-03-21-web-standup-interface-design.md`
 

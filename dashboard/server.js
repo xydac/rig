@@ -115,7 +115,7 @@ function buildState() {
 
 // --- Session State Machine ---
 // States: IDLE | STARTING | RUNNING | SHUTTING_DOWN | ERROR
-const SESSION_STATES = { IDLE: 'IDLE', STARTING: 'STARTING', RUNNING: 'RUNNING', SHUTTING_DOWN: 'SHUTTING_DOWN', ERROR: 'ERROR' };
+const SESSION_STATES = { IDLE: 'idle', STARTING: 'starting', RUNNING: 'running', SHUTTING_DOWN: 'shutting_down', ERROR: 'error' };
 
 let session = {
   state: SESSION_STATES.IDLE,
@@ -149,7 +149,7 @@ function pushChat(msg) {
 
 function setSessionState(newState, extra = {}) {
   session.state = newState;
-  broadcast({ type: 'session-state', data: { state: newState, sessionId: session.sessionId, ...extra } });
+  broadcast({ type: 'session-state', data: { status: newState, sessionId: session.sessionId, ...extra } });
 }
 
 // --- Agent State Tracking ---
@@ -195,17 +195,41 @@ function deriveAgentStatus(inboxPath) {
 
 function refreshAgentStates() {
   try {
+    // Read team config for roster metadata (color, model)
+    const configFile = join(CLAUDE_HOME, 'teams', 'rig-standup', 'config.json');
+    let members = [];
+    try {
+      const config = JSON.parse(readFileSync(configFile, 'utf8'));
+      members = (config.members || []).filter(m => m.agentType !== 'team-lead');
+    } catch {}
+
+    // Read inbox files for messages
     const files = existsSync(TEAMS_DIR)
       ? readdirSync(TEAMS_DIR).filter(f => f.endsWith('.json'))
       : [];
     const updated = {};
     for (const f of files) {
       const name = f.replace('.json', '');
+      const member = members.find(m => m.name === name) || {};
+      let messages = [];
+      try {
+        messages = JSON.parse(readFileSync(join(TEAMS_DIR, f), 'utf8'));
+      } catch {}
       const status = deriveAgentStatus(join(TEAMS_DIR, f));
-      updated[name] = { status, lastUpdate: new Date().toISOString() };
+      updated[name] = {
+        name,
+        color: member.color || 'blue',
+        model: member.model || 'sonnet',
+        status,
+        messages,
+        tasks: [],
+      };
     }
     agentStates = updated;
-    broadcast({ type: 'agent-update', data: agentStates });
+    // Broadcast per-agent updates (matching spec protocol)
+    for (const agent of Object.values(agentStates)) {
+      broadcast({ type: 'agent-update', data: agent });
+    }
   } catch (e) {
     // Non-fatal
   }
@@ -260,7 +284,7 @@ function startTaskWatcher(sessionId) {
 // --- Script Runner ---
 function runScript(scriptPath, broadcastType) {
   return new Promise((resolve, reject) => {
-    const proc = spawn('bash', [scriptPath], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+    const proc = spawn('bash', [scriptPath], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PRODUCT_FILTER: session.productFilter || '' } });
     proc.stdout.on('data', (chunk) => {
       broadcast({ type: broadcastType, data: { stream: 'stdout', text: chunk.toString() } });
     });
@@ -280,7 +304,7 @@ function spawnClaude(args) {
   return spawn('claude', args, {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env },
+    env: { ...process.env, PRODUCT_FILTER: session.productFilter || '' },
   });
 }
 
@@ -352,7 +376,7 @@ function attachClaudeHandlers(proc) {
 
     // Otherwise turn is just done; stay RUNNING and ready for next message
     if (session.state === SESSION_STATES.RUNNING) {
-      broadcast({ type: 'session-state', data: { state: SESSION_STATES.RUNNING, sessionId: session.sessionId, turnActive: false } });
+      broadcast({ type: 'session-state', data: { status: SESSION_STATES.RUNNING, sessionId: session.sessionId, turnActive: false } });
     }
   });
 
@@ -413,6 +437,7 @@ wss.on('connection', (ws) => {
 
     if (msg.type === 'start-session') {
       if (session.state !== SESSION_STATES.IDLE) return;
+      session.productFilter = msg.data?.productFilter || '';
       setSessionState(SESSION_STATES.STARTING);
       session.sessionId = randomUUID();
 
@@ -432,14 +457,14 @@ wss.on('connection', (ws) => {
 
       // First turn: launch claude with initial prompt from CLAUDE.md context
       // The user will send the first chat-input to actually begin
-      broadcast({ type: 'session-state', data: { state: SESSION_STATES.RUNNING, sessionId: session.sessionId, turnActive: false, ready: true } });
+      broadcast({ type: 'session-state', data: { status: SESSION_STATES.RUNNING, sessionId: session.sessionId, turnActive: false, ready: true } });
     }
 
     else if (msg.type === 'chat-input') {
       if (session.state !== SESSION_STATES.RUNNING) return;
       if (session.turnActive) return; // busy
 
-      const text = (msg.data || '').trim();
+      const text = (msg.data?.text || msg.data || '').toString().trim();
       if (!text) return;
 
       pushChat({ role: 'user', type: 'message', text, ts: Date.now() });

@@ -127,7 +127,7 @@ function renderSessionControls() {
   const stopBtn = document.getElementById('stop-btn');
   const filterEl = document.getElementById('product-filter');
 
-  const labels = { idle: 'IDLE', starting: 'STARTING', running: 'RUNNING', stopping: 'STOPPING' };
+  const labels = { idle: 'IDLE', starting: 'STARTING', running: 'RUNNING', shutting_down: 'SHUTTING DOWN', error: 'ERROR' };
   badge.textContent = labels[sessionStatus] || sessionStatus.toUpperCase();
   badge.className = `session-badge ${sessionStatus}`;
 
@@ -192,7 +192,7 @@ function renderChatMessages() {
 
   for (const msg of chatMessages) {
     const div = document.createElement('div');
-    div.className = `chat-msg chat-msg-${msg.role || 'assistant'}`;
+    div.className = `chat-msg ${msg.role || 'assistant'}`;
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'chat-msg-content';
@@ -258,7 +258,7 @@ function renderAgentTabs() {
     const isActive = name === activeAgentTab;
     const color = agent.color || '#888';
     return `
-      <button class="agent-tab-btn${isActive ? ' active' : ''}" onclick="switchAgentTab('${escapeHtml(name)}')">
+      <button class="agent-tab${isActive ? ' active' : ''}" onclick="switchAgentTab('${escapeHtml(name)}')">
         <span class="agent-color-dot" style="background:${color}"></span>
         <span class="agent-tab-name">${escapeHtml(name)}</span>
         <span class="agent-status-badge status-${agent.status || 'idle'}">${agent.status || 'idle'}</span>

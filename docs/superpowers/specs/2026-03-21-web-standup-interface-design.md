@@ -196,7 +196,7 @@ On change: re-read affected files, diff against cached state, broadcast updates.
 
 ```js
 // Session state change
-{ type: 'session-state', data: { status: 'idle'|'starting'|'running'|'shutting_down' } }
+{ type: 'session-state', data: { status: 'idle'|'starting'|'running'|'shutting_down'|'error' } }
 
 // Pre-meeting script output
 { type: 'pre-meeting-output', data: { text: string } }

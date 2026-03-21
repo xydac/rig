@@ -45,12 +45,17 @@ Node.js Server (dashboard/server.js)
 ```
 Server state machine:
   IDLE --> STARTING --> RUNNING --> SHUTTING_DOWN --> IDLE
+                            |
+                            +--> ERROR --> IDLE (on unexpected crash)
 
 IDLE:           No claude process. Dashboard in passive mode. "Start Standup" button visible.
-STARTING:       Running pre-meeting.sh, output streamed to browser.
+STARTING:       Running scripts/pre-meeting.sh, output streamed to browser.
 RUNNING:        claude process active. Chat streaming. PM agents may be active.
-SHUTTING_DOWN:  DONE received, agents completing, post-meeting.sh running.
+SHUTTING_DOWN:  DONE received, agents completing, scripts/post-meeting.sh running.
+ERROR:          claude process crashed or was killed. Error broadcast to clients. No post-meeting.sh.
 ```
+
+**Error handling:** If the claude PTY process exits unexpectedly (non-zero exit, signal kill, crash) during RUNNING state, the server transitions to ERROR, broadcasts `{ type: 'session-error', data: { message, exitCode } }`, then transitions to IDLE. `post-meeting.sh` does NOT run on crash.
 
 1. User opens browser, sees dashboard (existing behavior)
 2. User clicks "Start Standup" (optionally selects product filter)
@@ -73,7 +78,7 @@ Only one active standup session. If a session is running, the "Start Standup" bu
 Use `node-pty` to spawn `claude` in a pseudo-terminal:
 
 ```js
-const pty = require('node-pty');
+import pty from 'node-pty';
 const proc = pty.spawn('claude', [], {
   name: 'xterm-256color',
   cols: 120,
@@ -145,15 +150,29 @@ Derive agent status from message content and timing:
 | Last agent message contains "BLOCKED" | `blocked` |
 | No message activity for >5 minutes during execution | `stale` (warning) |
 
+### PID-to-Session Lookup
+
+To watch the correct task directory for the active standup session:
+
+1. Server spawns `claude` via node-pty, captures its PID
+2. Read `~/.claude/sessions/<pid>.json` to get the `sessionId`
+3. Watch only `~/.claude/tasks/<sessionId>/` for task updates (not the entire tasks directory)
+
+This avoids noise from other Claude sessions' task directories.
+
 ### Watcher Setup
 
 ```js
+// Watch team data (always — independent of session)
 chokidar.watch([
   join(CLAUDE_HOME, 'teams', 'rig-standup'),
-  join(CLAUDE_HOME, 'tasks'),
-  join(CLAUDE_HOME, 'sessions'),
 ], { ignoreInitial: true, awaitWriteFinish: { stabilityThreshold: 300 } });
+
+// Watch session-specific tasks (started after PID-to-sessionId lookup)
+// join(CLAUDE_HOME, 'tasks', sessionId)
 ```
+
+Use `stabilityThreshold: 300` for the claude-home watcher (vs 500 in the existing product watcher) because agent files are written atomically and need faster reaction time.
 
 On change: re-read affected files, diff against cached state, broadcast updates.
 
@@ -168,7 +187,8 @@ On change: re-read affected files, diff against cached state, broadcast updates.
 // Send chat input to claude
 { type: 'chat-input', data: { text: string } }
 
-// Request session stop (graceful)
+// Request session stop (graceful — writes "DONE" to PTY stdin to trigger normal shutdown)
+// If claude doesn't exit within 30 seconds, send SIGTERM. If still alive after 10 more seconds, SIGKILL.
 { type: 'stop-session' }
 ```
 
@@ -202,8 +222,9 @@ On change: re-read affected files, diff against cached state, broadcast updates.
 ### Connection Behavior
 
 - On connect: server sends `session-state` + `full-state`
-- If session is running: also sends chat history buffer and current agent states
+- If session is running: also sends chat history buffer (capped at last 500 messages / 1MB, oldest evicted first) and current agent states
 - Reconnect: client auto-reconnects (existing behavior), receives full state catch-up
+- Agent updates send the full message array per agent on each change. This is intentional for v1 simplicity — message counts are small (dozens per session, not thousands). No delta/diff protocol needed.
 
 ## Frontend Layout
 
@@ -248,15 +269,15 @@ On change: re-read affected files, diff against cached state, broadcast updates.
 - **STARTING state:** Pre-meeting output with progress indicator
 - **RUNNING state:** Message list + input bar
   - Messages: user messages right-aligned, Rig messages left-aligned
-  - Markdown rendering for Rig messages (code blocks, bold, lists)
+  - Markdown rendering for Rig messages via `marked` (loaded from CDN) — code blocks, bold, lists
   - Auto-scroll to bottom on new messages, with "scroll to bottom" button if user scrolled up
 - **SHUTTING_DOWN state:** Chat read-only, "Wrapping up..." indicator
 
 ### Agent Panel Elements
 
-- **Tab strip** with agent name + color dot + status badge per agent
+- **Tab strip** with agent name + config color dot (blue/green/yellow per team config) + status text badge per agent
 - **Panel content:**
-  - Status line: colored badge (spawning/ready/executing/completed/blocked)
+  - Status line: text badge with status-derived color (spawning=gray, ready=blue, executing=amber, completed=green, blocked=red)
   - Message thread: chronological, styled as a simple log (not chat bubbles)
   - Task checklist: checkboxes showing completion state
 - **Empty state:** "No agents active" when not in swarm mode or session not started
@@ -274,6 +295,7 @@ Add to existing header:
 ### New
 
 - `node-pty` — PTY wrapper for claude subprocess (native module, requires build tools)
+- `marked` — Markdown rendering (loaded from CDN in browser, not an npm dependency)
 
 ### Existing (unchanged)
 

@@ -2,6 +2,13 @@
 let state = { products: [], standups: [], config: {}, lastUpdate: null };
 let feedItems = [];
 
+// --- Session / Chat State ---
+let sessionStatus = 'idle';
+let chatMessages = [];
+let agents = {};
+let activeAgentTab = null;
+let autoScroll = true;
+
 // --- WebSocket ---
 const wsUrl = `ws://${location.host}`;
 let ws;
@@ -21,13 +28,53 @@ function connect() {
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
+
     if (msg.type === 'full-state') {
       const oldState = state;
       state = msg.data;
       render();
       detectChanges(oldState, state);
+      populateProductFilter();
+
+    } else if (msg.type === 'session-state') {
+      sessionStatus = msg.data.status;
+      renderSessionControls();
+      renderChatView();
+
+    } else if (msg.type === 'chat-output') {
+      chatMessages.push(msg.data);
+      renderChatMessages();
+
+    } else if (msg.type === 'chat-history') {
+      chatMessages = msg.data;
+      renderChatMessages();
+
+    } else if (msg.type === 'pre-meeting-output') {
+      appendPreMeetingOutput(msg.data.text);
+
+    } else if (msg.type === 'post-meeting-output' || msg.type === 'script-output') {
+      addFeedItem(msg.data.text || msg.data, 'info');
+
+    } else if (msg.type === 'session-error') {
+      addFeedItem(msg.data.text || msg.data, 'error');
+
+    } else if (msg.type === 'agent-update') {
+      const agent = msg.data;
+      agents[agent.name] = agent;
+      renderAgentTabs();
+      renderAgentPanel();
+
+    } else if (msg.type === 'tasks-update') {
+      // no-op for now
     }
   };
+}
+
+// --- WebSocket Send Helper ---
+function wsSend(type, data) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type, data }));
+  }
 }
 
 // --- Change Detection ---
@@ -56,6 +103,266 @@ function addFeedItem(text, type = 'info') {
   feedItems.unshift({ time, text, type });
   if (feedItems.length > 100) feedItems.pop();
   renderFeed();
+}
+
+// --- Product Filter ---
+function populateProductFilter() {
+  const select = document.getElementById('product-filter');
+  // Keep the "ALL PRODUCTS" default option, replace the rest
+  const products = (state.config.products || []).filter(p => p.name !== 'rig');
+  // Remove any previously added options (keep index 0)
+  while (select.options.length > 1) select.remove(1);
+  for (const p of products) {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name.toUpperCase();
+    select.appendChild(opt);
+  }
+}
+
+// --- Session Controls ---
+function renderSessionControls() {
+  const badge = document.getElementById('session-status');
+  const startBtn = document.getElementById('start-btn');
+  const stopBtn = document.getElementById('stop-btn');
+  const filterEl = document.getElementById('product-filter');
+
+  const labels = { idle: 'IDLE', starting: 'STARTING', running: 'RUNNING', stopping: 'STOPPING' };
+  badge.textContent = labels[sessionStatus] || sessionStatus.toUpperCase();
+  badge.className = `session-badge ${sessionStatus}`;
+
+  const isIdle = sessionStatus === 'idle';
+  const isRunning = sessionStatus === 'running' || sessionStatus === 'starting';
+
+  startBtn.classList.toggle('hidden', !isIdle);
+  filterEl.classList.toggle('hidden', !isIdle);
+  stopBtn.classList.toggle('hidden', !isRunning);
+}
+
+// --- Chat View ---
+function renderChatView() {
+  const chatIdle = document.getElementById('chat-idle');
+  const chatStarting = document.getElementById('chat-starting');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  if (sessionStatus === 'idle') {
+    if (chatIdle) chatIdle.style.display = '';
+    if (chatStarting) chatStarting.classList.add('hidden');
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+  } else if (sessionStatus === 'starting') {
+    if (chatIdle) chatIdle.style.display = 'none';
+    if (chatStarting) chatStarting.classList.remove('hidden');
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+  } else {
+    // running or stopping
+    if (chatIdle) chatIdle.style.display = 'none';
+    if (chatStarting) chatStarting.classList.add('hidden');
+    chatInput.disabled = false;
+    sendBtn.disabled = false;
+  }
+}
+
+// --- Pre-meeting Output ---
+function appendPreMeetingOutput(text) {
+  let pre = document.getElementById('pre-meeting-output');
+  if (!pre) {
+    // Create a pre element inside chat-starting if it doesn't exist
+    const startingDiv = document.getElementById('chat-starting');
+    if (startingDiv) {
+      pre = document.createElement('pre');
+      pre.id = 'pre-meeting-output';
+      startingDiv.appendChild(pre);
+    } else {
+      return;
+    }
+  }
+  pre.textContent += text;
+}
+
+// --- Chat Messages ---
+function renderChatMessages() {
+  const container = document.getElementById('chat-messages');
+
+  // Keep idle state element; remove previous chat-msg elements
+  const existingMsgs = container.querySelectorAll('.chat-msg');
+  existingMsgs.forEach(el => el.remove());
+
+  for (const msg of chatMessages) {
+    const div = document.createElement('div');
+    div.className = `chat-msg chat-msg-${msg.role || 'assistant'}`;
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'chat-msg-content';
+
+    if (msg.role === 'user') {
+      contentDiv.textContent = msg.text || msg.content || '';
+    } else {
+      const raw = msg.text || msg.content || '';
+      if (typeof marked !== 'undefined') {
+        contentDiv.innerHTML = marked.parse(raw);
+      } else {
+        contentDiv.textContent = raw;
+      }
+    }
+
+    div.appendChild(contentDiv);
+    container.appendChild(div);
+  }
+
+  if (autoScroll) {
+    container.scrollTop = container.scrollHeight;
+  }
+  updateScrollBottomBtn();
+}
+
+// --- Send Chat Message ---
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  chatMessages.push({ role: 'user', text });
+  renderChatMessages();
+  wsSend('chat-input', { text });
+}
+
+// --- Scroll-to-bottom Button ---
+function updateScrollBottomBtn() {
+  const container = document.getElementById('chat-messages');
+  const btn = document.getElementById('scroll-bottom-btn');
+  if (!btn) return;
+  const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
+  btn.classList.toggle('hidden', atBottom);
+}
+
+// --- Agent Tabs ---
+function renderAgentTabs() {
+  const container = document.getElementById('agent-tabs');
+  const names = Object.keys(agents);
+
+  if (names.length === 0) {
+    container.innerHTML = '<div class="agent-tabs-empty">No agents running</div>';
+    return;
+  }
+
+  if (!activeAgentTab || !agents[activeAgentTab]) {
+    activeAgentTab = names[0];
+  }
+
+  container.innerHTML = names.map(name => {
+    const agent = agents[name];
+    const isActive = name === activeAgentTab;
+    const color = agent.color || '#888';
+    return `
+      <button class="agent-tab-btn${isActive ? ' active' : ''}" onclick="switchAgentTab('${escapeHtml(name)}')">
+        <span class="agent-color-dot" style="background:${color}"></span>
+        <span class="agent-tab-name">${escapeHtml(name)}</span>
+        <span class="agent-status-badge status-${agent.status || 'idle'}">${agent.status || 'idle'}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+// --- Switch Agent Tab ---
+function switchAgentTab(name) {
+  activeAgentTab = name;
+  renderAgentTabs();
+  renderAgentPanel();
+}
+
+// --- Agent Panel ---
+function renderAgentPanel() {
+  const container = document.getElementById('agent-panel-content');
+  const names = Object.keys(agents);
+
+  if (names.length === 0) {
+    container.innerHTML = '<div class="agent-panel-empty">No agents active</div>';
+    return;
+  }
+
+  const agent = agents[activeAgentTab] || agents[names[0]];
+  if (!agent) {
+    container.innerHTML = '<div class="agent-panel-empty">No agents active</div>';
+    return;
+  }
+
+  const color = agent.color || '#888';
+  const statusColor = {
+    idle: 'var(--text-muted)',
+    running: 'var(--green)',
+    done: 'var(--text-dim)',
+    blocked: 'var(--red)',
+    starting: 'var(--amber)',
+  }[agent.status] || 'var(--text-dim)';
+
+  // Messages
+  const messages = agent.messages || [];
+  const messagesHtml = messages.length > 0 ? `
+    <div class="agent-section-header">MESSAGES</div>
+    <div class="agent-messages">
+      ${messages.map(m => `
+        <div class="agent-message">
+          <div class="agent-message-meta">
+            <span class="agent-message-from">${escapeHtml(m.from || 'system')}</span>
+            ${m.timestamp ? `<span class="agent-message-time">${escapeHtml(m.timestamp)}</span>` : ''}
+          </div>
+          <div class="agent-message-text">${escapeHtml(m.text || '')}</div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  // Tasks
+  const tasks = agent.tasks || [];
+  const tasksHtml = tasks.length > 0 ? `
+    <div class="agent-section-header">TASKS</div>
+    <div class="agent-tasks">
+      ${tasks.map(t => `
+        <div class="agent-task-item${t.done ? ' done' : ''}">
+          <span class="agent-task-check">${t.done ? '✓' : '○'}</span>
+          <span class="agent-task-text">${escapeHtml(t.text || t)}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
+
+  container.innerHTML = `
+    <div class="agent-panel-header">
+      <span class="agent-color-dot" style="background:${color}"></span>
+      <span class="agent-panel-name">${escapeHtml(agent.name || activeAgentTab)}</span>
+      <span class="agent-status-badge" style="color:${statusColor}">${agent.status || 'idle'}</span>
+      ${agent.model ? `<span class="agent-model">${escapeHtml(agent.model)}</span>` : ''}
+    </div>
+    ${messagesHtml}
+    ${tasksHtml}
+  `;
+}
+
+// --- Mobile Tab Switching ---
+function initMobileTabs() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+
+      // Update button active states
+      tabBtns.forEach(b => b.classList.remove('tab-active'));
+      btn.classList.add('tab-active');
+
+      // Update content active states
+      document.querySelectorAll('[data-tab-content]').forEach(el => {
+        el.classList.toggle('tab-active', el.dataset.tabContent === tab);
+      });
+    });
+  });
+
+  // Initialize chat tab as active
+  const chatContent = document.querySelector('[data-tab-content="chat"]');
+  if (chatContent) chatContent.classList.add('tab-active');
 }
 
 // --- Render ---
@@ -114,7 +421,7 @@ function renderProductCards() {
 
 function renderAgentStatus() {
   const container = document.getElementById('agent-status');
-  const agents = state.products
+  const agentList = state.products
     .filter(p => p.name !== 'rig')
     .map(p => ({
       name: p.name,
@@ -122,12 +429,12 @@ function renderAgentStatus() {
       task: '',
     }));
 
-  if (agents.length === 0) {
+  if (agentList.length === 0) {
     container.innerHTML = '<span style="color: var(--text-muted); font-size: 11px">No agents active</span>';
     return;
   }
 
-  container.innerHTML = agents.map(a => `
+  container.innerHTML = agentList.map(a => `
     <div class="agent-chip">
       <span class="agent-dot ${a.status}"></span>
       <span class="agent-name">${a.name}</span>
@@ -229,9 +536,45 @@ function hideDetail() {
   document.getElementById('product-detail').classList.add('hidden');
 }
 
+// --- Event Listeners ---
 document.getElementById('back-btn').addEventListener('click', hideDetail);
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') hideDetail();
+});
+
+document.getElementById('start-btn').addEventListener('click', () => {
+  const filter = document.getElementById('product-filter').value;
+  wsSend('start-session', { product: filter || null });
+});
+
+document.getElementById('stop-btn').addEventListener('click', () => {
+  if (confirm('Stop the current session?')) {
+    wsSend('stop-session', {});
+  }
+});
+
+document.getElementById('send-btn').addEventListener('click', sendChatMessage);
+
+document.getElementById('chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
+
+document.getElementById('chat-messages').addEventListener('scroll', () => {
+  const container = document.getElementById('chat-messages');
+  const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
+  autoScroll = atBottom;
+  updateScrollBottomBtn();
+});
+
+document.getElementById('scroll-bottom-btn').addEventListener('click', () => {
+  const container = document.getElementById('chat-messages');
+  container.scrollTop = container.scrollHeight;
+  autoScroll = true;
+  updateScrollBottomBtn();
 });
 
 // --- Utilities ---
@@ -246,4 +589,5 @@ function countLines(str) {
 }
 
 // --- Init ---
+initMobileTabs();
 connect();

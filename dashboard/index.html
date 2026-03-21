@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rig Ops Center</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
   <header>
@@ -13,6 +14,14 @@
       <div class="header-divider"></div>
       <span id="company-name">OPS CENTER</span>
     </div>
+    <div id="header-controls">
+      <select id="product-filter" class="header-select">
+        <option value="">ALL PRODUCTS</option>
+      </select>
+      <button id="start-btn" class="btn btn-primary">START</button>
+      <button id="stop-btn" class="btn btn-danger hidden">STOP</button>
+      <span id="session-status" class="session-badge idle">IDLE</span>
+    </div>
     <div id="header-meta">
       <span id="run-id"></span>
       <span id="last-update"></span>
@@ -20,32 +29,72 @@
     </div>
   </header>
 
+  <!-- Mobile Tab Bar -->
+  <nav class="mobile-tabs">
+    <button class="tab-btn tab-active" data-tab="chat">CHAT</button>
+    <button class="tab-btn" data-tab="agents">AGENTS</button>
+    <button class="tab-btn" data-tab="dashboard">DASHBOARD</button>
+  </nav>
+
   <main>
-    <!-- Product Cards -->
-    <section id="product-cards-section">
-      <div class="section-header">PRODUCTS</div>
-      <div id="product-cards" class="card-grid"></div>
+    <!-- Chat Section -->
+    <section id="chat-section" data-tab-content="chat" class="tab-active">
+      <div id="chat-messages">
+        <div class="chat-idle" id="chat-idle">
+          <div class="chat-idle-icon">◈</div>
+          <div class="chat-idle-label">RIG STANDUP</div>
+          <div class="chat-idle-hint">Select a product filter and press START to begin</div>
+        </div>
+      </div>
+      <div class="chat-starting hidden" id="chat-starting">
+        <div class="section-header">PRE-MEETING</div>
+        <div id="starting-output"></div>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" id="chat-input" placeholder="Message Rig..." autocomplete="off" disabled />
+        <button id="send-btn" class="btn btn-primary" disabled>SEND</button>
+      </div>
+      <button id="scroll-bottom-btn" class="scroll-bottom-btn hidden" title="Scroll to bottom">▼</button>
     </section>
 
-    <!-- Agent Status -->
-    <section id="agent-status-section">
-      <div class="section-header">AGENTS</div>
-      <div id="agent-status" class="agent-grid"></div>
+    <!-- Agents Section -->
+    <section id="agents-section" data-tab-content="agents">
+      <div class="agent-tabs" id="agent-tabs">
+        <div class="agent-tabs-empty">No agents running</div>
+      </div>
+      <div class="agent-panel-content" id="agent-panel-content">
+        <div class="agent-panel-empty">Start a session to spawn agents</div>
+      </div>
     </section>
 
-    <!-- Live Feed -->
-    <section id="live-feed-section">
-      <div class="section-header">ACTIVITY</div>
-      <div id="live-feed"></div>
+    <!-- Dashboard Section -->
+    <section id="dashboard-section" data-tab-content="dashboard">
+      <!-- Product Cards -->
+      <section id="product-cards-section">
+        <div class="section-header">PRODUCTS</div>
+        <div id="product-cards" class="card-grid"></div>
+      </section>
+
+      <!-- Agent Status -->
+      <section id="agent-status-section">
+        <div class="section-header">AGENTS</div>
+        <div id="agent-status" class="agent-grid"></div>
+      </section>
+
+      <!-- Live Feed -->
+      <section id="live-feed-section">
+        <div class="section-header">ACTIVITY</div>
+        <div id="live-feed"></div>
+      </section>
+
+      <!-- Standups -->
+      <section id="standups-section">
+        <div class="section-header">STANDUPS</div>
+        <div id="standups-list"></div>
+      </section>
     </section>
 
-    <!-- Standups -->
-    <section id="standups-section">
-      <div class="section-header">STANDUPS</div>
-      <div id="standups-list"></div>
-    </section>
-
-    <!-- Product Detail (overlay) -->
+    <!-- Product Detail (overlay — direct child of main) -->
     <section id="product-detail" class="hidden">
       <div class="detail-header">
         <div>

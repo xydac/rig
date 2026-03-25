@@ -26,6 +26,10 @@ function connect() {
     setTimeout(connect, 3000);
   };
 
+  ws.onerror = () => {
+    // onclose will fire after onerror, so reconnect is handled there
+  };
+
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
@@ -42,11 +46,32 @@ function connect() {
       renderChatView();
 
     } else if (msg.type === 'chat-output') {
-      chatMessages.push(msg.data);
-      renderChatMessages();
+      if (msg.data.type === 'delta') {
+        // Accumulate deltas into the last assistant message instead of creating new entries
+        const last = chatMessages[chatMessages.length - 1];
+        if (last && last.role === 'assistant' && last.type === 'delta') {
+          last.text += msg.data.text;
+        } else {
+          chatMessages.push({ ...msg.data });
+        }
+        renderStreamingDelta();
+      } else {
+        // For complete messages, replace the accumulated delta if present
+        if (msg.data.type === 'message' && msg.data.role === 'assistant') {
+          const last = chatMessages[chatMessages.length - 1];
+          if (last && last.role === 'assistant' && last.type === 'delta') {
+            chatMessages[chatMessages.length - 1] = msg.data;
+          } else {
+            chatMessages.push(msg.data);
+          }
+        } else {
+          chatMessages.push(msg.data);
+        }
+        renderChatMessages();
+      }
 
     } else if (msg.type === 'chat-history') {
-      chatMessages = msg.data;
+      chatMessages = msg.data || [];
       renderChatMessages();
 
     } else if (msg.type === 'pre-meeting-output') {
@@ -186,7 +211,7 @@ function appendPreMeetingOutput(text) {
 function renderChatMessages() {
   const container = document.getElementById('chat-messages');
 
-  // Keep idle state element; remove previous chat-msg elements
+  // Keep idle state element; remove previous chat-msg elements (including streaming)
   const existingMsgs = container.querySelectorAll('.chat-msg');
   existingMsgs.forEach(el => el.remove());
 
@@ -210,6 +235,37 @@ function renderChatMessages() {
 
     div.appendChild(contentDiv);
     container.appendChild(div);
+  }
+
+  if (autoScroll) {
+    container.scrollTop = container.scrollHeight;
+  }
+  updateScrollBottomBtn();
+}
+
+// --- Efficient Streaming Update ---
+function renderStreamingDelta() {
+  const container = document.getElementById('chat-messages');
+  const last = chatMessages[chatMessages.length - 1];
+  if (!last) return;
+
+  // Find or create the streaming element
+  let el = container.querySelector('.chat-msg.streaming');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'chat-msg assistant streaming';
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'chat-msg-content';
+    el.appendChild(contentDiv);
+    container.appendChild(el);
+  }
+
+  const contentDiv = el.querySelector('.chat-msg-content');
+  const raw = last.text || '';
+  if (typeof marked !== 'undefined') {
+    contentDiv.innerHTML = marked.parse(raw);
+  } else {
+    contentDiv.textContent = raw;
   }
 
   if (autoScroll) {

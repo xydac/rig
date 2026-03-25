@@ -13,6 +13,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const PORT = process.env.PORT || 3847;
 const HOME = homedir();
+const CLAUDE_HOME = join(HOME, '.claude');
 
 // --- State ---
 let state = { products: [], standups: [], config: {}, lastUpdate: null };
@@ -134,7 +135,7 @@ const CHAT_MAX_BYTES = 1024 * 1024;
 let chatHistory = [];
 let chatBytes = 0;
 
-function pushChat(msg) {
+function pushChat(msg, { silent = false } = {}) {
   const serialized = JSON.stringify(msg);
   const size = serialized.length;
   chatBytes += size;
@@ -144,7 +145,7 @@ function pushChat(msg) {
     const evicted = chatHistory.shift();
     chatBytes -= evicted.size;
   }
-  broadcast({ type: 'chat-output', data: msg });
+  if (!silent) broadcast({ type: 'chat-output', data: msg });
 }
 
 function setSessionState(newState, extra = {}) {
@@ -427,13 +428,33 @@ async function finishShutdown() {
 const wss = new WebSocketServer({ noServer: true });
 const clients = new Set();
 
+// Heartbeat: ping every 30s, terminate if no pong within 10s
+const PING_INTERVAL = 30000;
+const PONG_TIMEOUT = 10000;
+
+const heartbeat = setInterval(() => {
+  for (const ws of clients) {
+    if (ws.isAlive === false) {
+      clients.delete(ws);
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }
+}, PING_INTERVAL);
+
+wss.on('close', () => clearInterval(heartbeat));
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   clients.add(ws);
 
   // Send current session state
   ws.send(JSON.stringify({
     type: 'session-state',
-    data: { state: session.state, sessionId: session.sessionId, turnActive: session.turnActive },
+    data: { status: session.state, sessionId: session.sessionId, turnActive: session.turnActive },
   }));
 
   // Send full product/standup state
@@ -442,7 +463,9 @@ wss.on('connection', (ws) => {
   // If running, also send chat history and agent states
   if (session.state === SESSION_STATES.RUNNING || session.state === SESSION_STATES.SHUTTING_DOWN) {
     ws.send(JSON.stringify({ type: 'chat-history', data: chatHistory.map(h => h.msg) }));
-    ws.send(JSON.stringify({ type: 'agent-update', data: agentStates }));
+    for (const agent of Object.values(agentStates)) {
+      ws.send(JSON.stringify({ type: 'agent-update', data: agent }));
+    }
   }
 
   ws.on('message', async (raw) => {
@@ -451,7 +474,7 @@ wss.on('connection', (ws) => {
 
     if (msg.type === 'start-session') {
       if (session.state !== SESSION_STATES.IDLE) return;
-      session.productFilter = msg.data?.productFilter || '';
+      session.productFilter = msg.data?.productFilter || msg.data?.product || '';
       setSessionState(SESSION_STATES.STARTING);
       session.sessionId = randomUUID();
 
@@ -484,7 +507,7 @@ wss.on('connection', (ws) => {
       const text = (msg.data?.text || msg.data || '').toString().trim();
       if (!text) return;
 
-      pushChat({ role: 'user', type: 'message', text, ts: Date.now() });
+      pushChat({ role: 'user', type: 'message', text, ts: Date.now() }, { silent: true });
 
       // Build claude args
       let args;
